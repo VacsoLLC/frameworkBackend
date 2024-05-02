@@ -1,0 +1,23 @@
+import Table from '../../table.js';
+
+export default class DeptTable extends Table {
+  constructor(args) {
+    super({ name: 'Department', table: 'dept', ...args });
+
+    this.addRequiredRoles('Admin');
+
+    this.addColumn({
+      columnName: 'name',
+      friendlyName: 'Name',
+      columnType: 'string',
+      index: true,
+      helpText: 'Department Name',
+    });
+
+    this.addMenuItem({
+      label: 'Departments',
+      parent: 'Admin',
+      icon: 'pi-building',
+    });
+  }
+}

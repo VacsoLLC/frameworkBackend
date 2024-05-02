@@ -1,0 +1,31 @@
+{
+  "name": "frameworkbackend",
+  "version": "1.0.0",
+  "description": "Welcome to the Vacso Framework, an open-source project designed to streamline the development of enterprise React web applications. Brought to you by Vacso, this framework is a comprehensive solution for both front-end and back-end development, allowing you to focus on crafting your unique data model and business rules.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@azure/identity": "^4.1.0",
+    "@azure/msal-node": "^2.7.0",
+    "@microsoft/microsoft-graph-client": "^3.0.7",
+    "bcrypt": "^5.1.1",
+    "express": "^4.19.2",
+    "googleapis": "^135.0.0",
+    "handlebars": "^4.7.8",
+    "html-to-text": "^9.0.5",
+    "jsonwebtoken": "^9.0.2",
+    "knex": "^3.1.0",
+    "mimetext": "^3.0.24",
+    "nodemailer": "^6.9.13",
+    "postal-mime": "^2.2.5",
+    "saml2-js": "^4.0.2",
+    "smtp-server": "^3.13.4",
+    "sqlite3": "^5.1.7"
+  }
+}
