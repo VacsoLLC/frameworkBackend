@@ -2,6 +2,12 @@
 
 Welcome to the Vacso Framework, an open-source project designed to streamline the development of enterprise React web applications. Brought to you by Vacso, this framework is a comprehensive solution for both front-end and back-end development, allowing you to focus on crafting your unique data model and business rules.
 
+frameworkBackend is designed to be used with frameworkFrontend to build custom enterprise applications.
+
+## WARNING: Alpha!
+
+frameworkTicketing is alpha level code. It is under active development and should not be used in production at this time.
+
 ## Features
 
 - **Front-End & Back-End Components**: Vacso Framework offers a complete set of reusable components, making it easy to build robust and scalable web applications.
