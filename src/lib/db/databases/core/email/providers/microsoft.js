@@ -13,13 +13,14 @@ export default class Microsoft extends EmailProvider {
   }
 
   async init() {
-    await this.setupClient();
-    //await this.checkEmail();
+    const result = await this.setupClient();
 
-    setInterval(() => {
-      console.log(`Checking email for ${this.config.name}...`);
-      this.checkEmail();
-    }, this.config.checkInterval);
+    if (result) {
+      setInterval(() => {
+        console.log(`Checking email for ${this.config.name}...`);
+        this.checkEmail();
+      }, this.config.checkInterval);
+    }
   }
 
   async archiveEmail(id) {
@@ -85,8 +86,6 @@ export default class Microsoft extends EmailProvider {
     };
 
     try {
-      //`/users/${this.config.email}/sendMail`;
-
       if (args.emailId) {
         let response = await this.client
           .api(`/users/${this.config.email}/messages/${args.emailId}/reply`)
@@ -118,19 +117,28 @@ export default class Microsoft extends EmailProvider {
   }
 
   async setupClient() {
-    const credential = new ClientSecretCredential(
-      this.config.auth.tenantId,
-      this.config.auth.clientId,
-      this.config.auth.clientSecret
-    );
+    try {
+      const credential = new ClientSecretCredential(
+        this.config.auth.tenantId,
+        this.config.auth.clientId,
+        this.config.auth.clientSecret
+      );
 
-    const authProvider = new TokenCredentialAuthenticationProvider(credential, {
-      scopes: ['https://graph.microsoft.com/.default'],
-    });
+      const authProvider = new TokenCredentialAuthenticationProvider(
+        credential,
+        {
+          scopes: ['https://graph.microsoft.com/.default'],
+        }
+      );
 
-    this.client = graph.Client.initWithMiddleware({
-      authProvider,
-      //debugLogging: true,
-    });
+      this.client = graph.Client.initWithMiddleware({
+        authProvider,
+        //debugLogging: true,
+      });
+      return true;
+    } catch (error) {
+      console.log('Error setting up Microsoft email client', error);
+      return false;
+    }
   }
 }

@@ -9,7 +9,6 @@ let db;
 let config;
 
 export default async function router(tempconfig) {
-  
   config = tempconfig; // this sucks, fix this
 
   db = new DB(config);
@@ -51,7 +50,7 @@ export default async function router(tempconfig) {
     }
 
     console.log('Authentication successful');
-    const token = createToken(user, this.config);
+    const token = createToken(user, config);
     res.json({ message: 'Authentication successful', token });
   });
 
