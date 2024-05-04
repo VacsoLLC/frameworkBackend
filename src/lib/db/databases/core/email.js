@@ -28,14 +28,7 @@ export default class Email extends Base {
 
     const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-    this.templates.subject = await this.compileTemplate(
-      //'src\\backend\\lib\\db\\databases\\core\\email\\templates\\subject.hbs'
-      path.join(__dirname, 'email', 'templates', 'subject.hbs')
-    );
-    this.templates.body = await this.compileTemplate(
-      //'src\\backend\\lib\\db\\databases\\core\\email\\templates\\body.hbs'
-      path.join(__dirname, 'email', 'templates', 'body.hbs')
-    );
+
 
     for (const provider of Object.values(this.mailboxes)) {
       await provider.init();
@@ -43,40 +36,8 @@ export default class Email extends Base {
     return;
   }
 
-  async sendEmail(args, req) {
-    const user = await this.dbs.core.user.getRecord({
-      recordId: args.record.requester,
-    });
-
-    if (!user) {
-      throw new Error('No user found! Can not send email');
-    }
-
-    const email = {};
-    email.body = this.templates.body(args);
-    email.subject = this.templates.subject(args);
-    email.to = user.email;
-    email.emailId = args.record.emailId;
-    email.emailConversationId = args.record.emailConversationId;
-    email.args = args;
-
-    let provider = this.config.email.defaultMailbox;
-    if (args.record.emailProvider) {
-      provider = args.record.emailProvider;
-    }
-
-    const results = await this.mailboxes[provider].sendEmail(email, req);
-
-    if (results && results.emailId && results.emailConversationId) {
-      await this.dbs[args.db][args.table].updateRecord({
-        recordId: args.recordId,
-        data: {
-          emailId: results.emailId,
-          emailConversationId: results.emailConversationId,
-        },
-        req,
-      });
-    }
+  async sendEmail({ email, provider = this.config.email.defaultMailbox }) {
+    const results = await this.mailboxes[provider].sendEmail(email);
 
     return results;
   }

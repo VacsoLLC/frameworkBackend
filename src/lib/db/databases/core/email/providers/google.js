@@ -93,7 +93,7 @@ export default class Google extends EmailProvider {
     }
   }
 
-  async sendEmail(args, req) {
+  async sendEmail(args) {
     console.log('Sending email', args);
 
     const message = createMimeMessage();

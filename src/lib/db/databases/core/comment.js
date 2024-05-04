@@ -91,30 +91,8 @@ export default class Comment extends Table {
     });
 
     this.addOnCreate(async (args, req) => {
-      if (args && args.type === 'Private') {
-        // We dont want to send emails for private comments
-        return args;
-      }
-
-      if (args.author == '0') {
-        // We dont want to send emails for system comments
-        return args;
-      }
-
-      const result = { comment: args };
-      result.record = await this.dbs[args.db][args.table].getRecord({
-        where: { id: args.row },
-      });
-
-      if (result.record.requester) {
-        result.user = await this.dbs.core.user.getRecord({
-          where: { id: result.record.requester },
-        });
-      }
-      result.db = args.db;
-      result.table = args.table;
-      result.recordId = args.row;
-      await this.dbs.core.email.sendEmail(result, req);
+      // TODO every create and update should send a message to the event bus
+      this.dbs.core.event.emit('comment', { ...args });
 
       return args;
     });
