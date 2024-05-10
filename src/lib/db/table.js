@@ -509,6 +509,8 @@ export default class Table extends Base {
       const [recordId] = await this.runQuery(query);
       console.log(`Record created with ID ${recordId} in ${this.table}`);
 
+      data.id = recordId;
+
       if (audit) {
         await this.audit({
           message: 'Record Created',
