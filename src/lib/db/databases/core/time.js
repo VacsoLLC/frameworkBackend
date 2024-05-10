@@ -102,7 +102,7 @@ export default class Time extends Table {
   }
 
   createEntry({ seconds, db, table, recordId, req }) {
-    return this.createRecord({
+    return this.recordCreate({
       req,
       data: {
         db,

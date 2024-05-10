@@ -95,7 +95,7 @@ export default class Audit extends Table {
   }
 
   async log(args) {
-    await this.createRecord({
+    await this.recordCreate({
       data: {
         db: args.db,
         table: args.table,

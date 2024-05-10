@@ -110,7 +110,7 @@ export default class UserTable extends Table {
       throw new Error('Password and Verify Password must match.');
     }
 
-    return await this.updateRecord({
+    return await this.recordUpdate({
       recordId,
       data: {
         password: Password,
@@ -142,7 +142,7 @@ export default class UserTable extends Table {
       return user;
     }
 
-    const userid = this.createRecord({
+    const userid = this.recordCreate({
       data: {
         email,
         name: email,
@@ -164,23 +164,23 @@ export default class UserTable extends Table {
   }
 
   async get({ where }) {
-    const user = await this.getRecord({ where, returnPasswords: true });
+    const user = await this.recordGet({ where, returnPasswords: true });
 
     if (!user) {
       return false;
     }
 
-    const groups = await this.dbs.core.user_group.getRows({
+    const groups = await this.dbs.core.user_group.rowsGet({
       where: { id2: user.id },
     });
 
     user.groups = groups.rows.map((group) => group.id1);
 
-    const user_roles = await this.dbs.core.user_role.getRows({
+    const user_roles = await this.dbs.core.user_role.rowsGet({
       where: { id2: user.id },
     });
 
-    const group_roles = await this.dbs.core.group_role.getRows({
+    const group_roles = await this.dbs.core.group_role.rowsGet({
       where: { id2: user.id },
     });
 

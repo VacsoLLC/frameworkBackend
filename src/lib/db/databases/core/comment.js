@@ -89,17 +89,10 @@ export default class Comment extends Table {
         return user.id;
       },
     });
-
-    this.addOnCreate(async (args, req) => {
-      // TODO every create and update should send a message to the event bus
-      this.dbs.core.event.emit('comment', { ...args });
-
-      return args;
-    });
   }
 
   async createComment({ req, db, table, recordId, comment, type = 'Private' }) {
-    return await this.createRecord({
+    return await this.recordCreate({
       req,
       data: {
         db,

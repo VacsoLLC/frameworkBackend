@@ -35,13 +35,13 @@ export default class Table extends Base {
 
     this.addAction({
       label: 'Update',
-      method: 'updateRecord',
+      method: 'recordUpdate',
       helpText: 'Update the record and stay here',
     });
 
     this.addAction({
       label: 'Update & Close',
-      method: 'updateRecord',
+      method: 'recordUpdate',
       helpText: 'Update the record and close',
       close: true,
     });
@@ -57,7 +57,7 @@ export default class Table extends Base {
     this.addAction({
       label: 'Delete',
       helpText: 'Delete Record',
-      method: 'deleteRecord',
+      method: 'recordDelete',
       verify:
         'Are you sure you want to delete this record? This action cannot be undone.',
       close: true,
@@ -69,9 +69,9 @@ export default class Table extends Base {
     });
 
     this.addReadOnlyActions({
-      getRecord: true,
-      getRows: true,
-      getSchema: true,
+      recordGet: true,
+      rowsGet: true,
+      schemaGet: true,
     });
   }
 
@@ -184,7 +184,7 @@ export default class Table extends Base {
             recordToCreate[columnName] = recordToCreate[columnName]();
           }
         }
-        await this.createRecord({
+        await this.recordCreate({
           data: recordToCreate,
           req: {
             user: {
@@ -395,7 +395,7 @@ export default class Table extends Base {
     return await this.knex.schema.hasColumn(this.table, columnName);
   }
 
-  async getRows({
+  async rowsGet({
     where,
     sortField = 'id',
     sortOrder = 'desc',
@@ -463,7 +463,7 @@ export default class Table extends Base {
     };
   }
 
-  async getSchema({ req: { user } }) {
+  async schemaGet({ req: { user } }) {
     let schema = { ...this.columns };
     for (const columnName in this.columns) {
       const column = this.columns[columnName];
@@ -486,7 +486,7 @@ export default class Table extends Base {
     return this.children;
   }
 
-  async createRecord({ data, audit = true, req }) {
+  async recordCreate({ data, audit = true, req }) {
     for (const columnName in this.columns) {
       const column = this.columns[columnName];
 
@@ -498,6 +498,11 @@ export default class Table extends Base {
     for (const callback of this.onCreate) {
       data = await callback.call(this, data, req);
     }
+
+    this.emit('recordCreate.before', {
+      data,
+      req,
+    });
 
     try {
       const query = this.knex(this.table).insert(data); //.returning('id');
@@ -513,6 +518,12 @@ export default class Table extends Base {
         });
       }
 
+      this.emit('recordCreate.after', {
+        recordId,
+        data,
+        req,
+      });
+
       return { id: recordId };
     } catch (err) {
       console.error(`Error creating record in ${this.table}: ${err}`);
@@ -520,7 +531,7 @@ export default class Table extends Base {
     }
   }
 
-  async updateRecord({ recordId, data, req }) {
+  async recordUpdate({ recordId, data, req }) {
     for (const columnName in this.columns) {
       const column = this.columns[columnName];
       if (column.columnType == 'password' && data && data[columnName]) {
@@ -535,6 +546,12 @@ export default class Table extends Base {
     for (const callback of this.onUpdate) {
       data = await callback.call(this, data, req);
     }
+
+    this.emit('recordUpdate.before', {
+      recordId,
+      data,
+      req,
+    });
 
     const query = this.knex(this.table).where('id', recordId).update(data);
     const result = await this.runQuery(query);
@@ -554,22 +571,46 @@ export default class Table extends Base {
       req,
     });
 
+    this.emit('recordUpdate.after', {
+      recordId,
+      data,
+      req,
+    });
+
     return { rowsUpdated: result };
   }
 
-  async deleteRecord({ recordId, req }) {
+  async emit(event, args) {
+    args.table = this.table;
+    args.db = this.db;
+    this.dbs.core.event.emit(`${this.db}.${this.table}.${event}`, args);
+  }
+
+  async recordDelete({ recordId, req }) {
+    this.emit('recordDelete.before', {
+      recordId,
+      req,
+    });
+
+    const query = this.knex(this.table).where('id', recordId).delete();
+    const result = await this.runQuery(query);
+
     await this.audit({
       message: 'Record Delete',
       args: arguments,
       recordId,
       req,
     });
-    const query = this.knex(this.table).where('id', recordId).delete();
-    const result = await this.runQuery(query);
+
+    this.emit('recordDelete.after', {
+      recordId,
+      req,
+    });
+
     return { rowsDeleted: result };
   }
 
-  async getRecord({ recordId, where, returnPasswords = false }) {
+  async recordGet({ recordId, where, returnPasswords = false }) {
     try {
       if (!where) {
         where = { id: recordId };
