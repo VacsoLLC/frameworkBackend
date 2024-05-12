@@ -80,7 +80,11 @@ export default class UserTable extends Table {
       name: 'Admin',
       email: 'admin',
       password: () => {
-        const password = this.generatePassword({ length: 20 });
+        const password =
+          process.env.ADMIN_PASSWORD ||
+          this.generatePassword({
+            length: 20,
+          });
         console.log('Admin Password: ', password);
         return bcrypt.hashSync(password, 10);
       },
@@ -142,7 +146,7 @@ export default class UserTable extends Table {
       return user;
     }
 
-    const userid = this.recordCreate({
+    const userid = await this.recordCreate({
       data: {
         email,
         name: email,
