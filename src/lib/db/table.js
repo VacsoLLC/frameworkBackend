@@ -12,6 +12,7 @@ const columnTypeConversion = {
   password: 'string',
   integer: 'integer',
   datetime: 'bigint', // TODO make sure this works in sqlite
+  text: 'text',
 };
 
 export default class Table extends Base {
@@ -112,28 +113,23 @@ export default class Table extends Base {
     if (!knexInstance) {
       knexInstance = knex(this.config.db[db]);
     }
-    // each database must be attached for SQLite for cross-database queries to work... it names the database.
-    if (!knexConnected[db]) {
-      const results = await knexInstance.raw(
-        `attach database '${this.config.db[db].connection.filename}' as ${db}`
-      );
-      knexConnected[db] = true;
-    }
+
+    knexConnected[db] = true;
+
     return knexInstance;
   }
 
   async initializeTable() {
     let tableCreated = false;
 
-    const exists = await this.knex.schema.hasTable(`${this.table}`);
+    const exists = await this.knex.schema
+      .withSchema(this.db)
+      .hasTable(`${this.table}`);
     if (!exists) {
       try {
-        await this.knex.schema.createTable(
-          `${this.db}.${this.table}`,
-          (table) => {
-            table.increments('id').primary();
-          }
-        );
+        await this.knex.schema.createTable(this.dbDotTable, (table) => {
+          table.increments('id').primary();
+        });
         console.log(`Table ${this.db}.${this.table} created!`);
         tableCreated = true;
       } catch (error) {
@@ -159,12 +155,14 @@ export default class Table extends Base {
         !(await this.columnExists(columnName))
       ) {
         try {
-          await this.knex.schema.table(this.table, (table) => {
-            table[column.dbColumnType](columnName).comment(column.helpText);
-            if (column.index) {
-              table.index(columnName);
-            }
-          });
+          await this.knex.schema
+            .withSchema(this.db)
+            .table(this.table, (table) => {
+              table[column.dbColumnType](columnName).comment(column.helpText);
+              if (column.index) {
+                table.index(columnName);
+              }
+            });
           console.log(`Column ${columnName} added to ${this.table}!`);
         } catch (err) {
           console.error(`Error adding column ${columnName}: ${err}`);
@@ -392,7 +390,10 @@ export default class Table extends Base {
   }
 
   async columnExists(columnName) {
-    return await this.knex.schema.hasColumn(this.table, columnName);
+    //await knexInstance.raw(`use ${this.db}`); // TODO: This is a workaround for knex's mysql imlpementation hasColumn doesnt' respect the withSchema
+    return await this.knex.schema
+      //.withSchema(this.db)
+      .hasColumn(this.dbDotTable, columnName);
   }
 
   async rowsGet({
@@ -404,7 +405,7 @@ export default class Table extends Base {
     returnCount = false,
   }) {
     let selectedColumns = [];
-    let query = this.knex.from(this.table);
+    let query = this.knex.from(this.dbDotTable);
 
     for (const columnName in this.columns) {
       if (this.columns[columnName].columnType == 'password') {
@@ -499,13 +500,13 @@ export default class Table extends Base {
       data = await callback.call(this, data, req);
     }
 
-    this.emit('recordCreate.before', {
+    await this.emit('recordCreate.before', {
       data,
       req,
     });
 
     try {
-      const query = this.knex(this.table).insert(data); //.returning('id');
+      const query = this.knex.from(this.dbDotTable).insert(data); //.returning('id');
       const [recordId] = await this.runQuery(query);
       console.log(`Record created with ID ${recordId} in ${this.table}`);
 
@@ -520,7 +521,7 @@ export default class Table extends Base {
         });
       }
 
-      this.emit('recordCreate.after', {
+      await this.emit('recordCreate.after', {
         recordId,
         data,
         req,
@@ -549,13 +550,16 @@ export default class Table extends Base {
       data = await callback.call(this, data, req);
     }
 
-    this.emit('recordUpdate.before', {
+    await this.emit('recordUpdate.before', {
       recordId,
       data,
       req,
     });
 
-    const query = this.knex(this.table).where('id', recordId).update(data);
+    const query = this.knex
+      .from(this.dbDotTable)
+      .where('id', recordId)
+      .update(data);
     const result = await this.runQuery(query);
 
     for (const columnName in this.columns) {
@@ -573,7 +577,7 @@ export default class Table extends Base {
       req,
     });
 
-    this.emit('recordUpdate.after', {
+    await this.emit('recordUpdate.after', {
       recordId,
       data,
       req,
@@ -585,16 +589,19 @@ export default class Table extends Base {
   async emit(event, args) {
     args.table = this.table;
     args.db = this.db;
-    this.dbs.core.event.emit(`${this.db}.${this.table}.${event}`, args);
+    await this.dbs.core.event.emit(`${this.db}.${this.table}.${event}`, args);
   }
 
   async recordDelete({ recordId, req }) {
-    this.emit('recordDelete.before', {
+    await this.emit('recordDelete.before', {
       recordId,
       req,
     });
 
-    const query = this.knex(this.table).where('id', recordId).delete();
+    const query = this.knex
+      .from(this.dbDotTable)
+      .where('id', recordId)
+      .delete();
     const result = await this.runQuery(query);
 
     await this.audit({
@@ -604,7 +611,7 @@ export default class Table extends Base {
       req,
     });
 
-    this.emit('recordDelete.after', {
+    await this.emit('recordDelete.after', {
       recordId,
       req,
     });
@@ -635,7 +642,8 @@ export default class Table extends Base {
         selectedColumns.push(columnName);
       }
 
-      let query = this.knex(this.table)
+      let query = this.knex
+        .from(this.dbDotTable)
         .select(selectedColumns)
         .where(where)
         .first();

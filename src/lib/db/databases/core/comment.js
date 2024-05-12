@@ -30,7 +30,6 @@ export default class Comment extends Table {
       columnType: 'string',
       hiddenList: true,
       hiddenUpdate: true,
-      //hidden: true,
     });
 
     this.addColumn({
@@ -39,7 +38,6 @@ export default class Comment extends Table {
       columnType: 'string',
       hiddenList: true,
       hiddenUpdate: true,
-      //hidden: true,
     });
 
     this.addColumn({
@@ -48,28 +46,6 @@ export default class Comment extends Table {
       columnType: 'integer',
       hiddenList: true,
       hiddenUpdate: true,
-      //hidden: true,
-    });
-
-    this.addColumn({
-      columnName: 'type',
-      friendlyName: 'Type',
-      //columnType: 'string',
-      index: true,
-      helpText:
-        'Public comments are visible to the customer or end user. Private comments are visible only to techs, agents, and admins.',
-      defaultValue: 'Private',
-      fieldType: 'select',
-      options: ['Private', 'Public'],
-    });
-
-    this.addColumn({
-      columnName: 'body',
-      friendlyName: 'Comment',
-      columnType: 'string',
-      index: true,
-      helpText: 'Comment',
-      fieldType: 'textArea',
     });
 
     this.addManyToOne({
@@ -88,6 +64,27 @@ export default class Comment extends Table {
       defaultValue: ({ user }) => {
         return user.id;
       },
+    });
+
+    this.addColumn({
+      columnName: 'type',
+      friendlyName: 'Type',
+      //columnType: 'string',
+      index: true,
+      helpText:
+        'Public comments are visible to the customer or end user. Private comments are visible only to techs, agents, and admins.',
+      defaultValue: 'Private',
+      fieldType: 'select',
+      options: ['Private', 'Public'],
+    });
+
+    this.addColumn({
+      columnName: 'body',
+      friendlyName: 'Comment',
+      columnType: 'text',
+      index: true,
+      helpText: 'Comment',
+      fieldType: 'textArea',
     });
   }
 

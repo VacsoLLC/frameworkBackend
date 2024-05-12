@@ -1,5 +1,5 @@
 {
-  "name": "frameworkbackend",
+  "name": "@vacso/frameworkbackend",
   "version": "1.0.0",
   "description": "Welcome to the Vacso Framework, an open-source project designed to streamline the development of enterprise React web applications. Brought to you by Vacso, this framework is a comprehensive solution for both front-end and back-end development, allowing you to focus on crafting your unique data model and business rules.",
   "main": "index.js",
@@ -23,6 +23,7 @@
     "jsonwebtoken": "^9.0.2",
     "knex": "^3.1.0",
     "mimetext": "^3.0.24",
+    "mysql2": "^3.9.7",
     "nodemailer": "^6.9.13",
     "postal-mime": "^2.2.5",
     "saml2-js": "^4.0.2",

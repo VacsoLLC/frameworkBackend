@@ -49,7 +49,7 @@ export default class Saml {
       });
     }
 
-    return res.json(list);
+    return res.json({ data: list, messages: [] });
   }
 
   async saml(req, res) {

@@ -88,7 +88,7 @@ export default class Audit extends Table {
     this.addColumn({
       columnName: 'detail',
       friendlyName: 'Detail',
-      columnType: 'string',
+      columnType: 'text',
       helpText: 'Contains the JSON passed to the function.',
       fieldType: 'textArea',
     });

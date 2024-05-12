@@ -51,7 +51,7 @@ export default async function router(tempconfig) {
 
     console.log('Authentication successful');
     const token = createToken(user, config);
-    res.json({ message: 'Authentication successful', token });
+    res.json({ data: { message: 'Authentication successful', token } });
   });
 
   return routerReturn;
@@ -77,18 +77,9 @@ async function handlerFunction(req, res) {
 
   validateProperties(req.body, req.query);
 
-  req.date = Date.now();
-  req.action = req.params.action;
-  req.db = req.params.db;
-  req.table = req.params.table;
-
-  if (req.params.recordId) {
-    req.record = {
-      id: req.params.recordId,
-      table: req.params.table,
-      db: req.params.db,
-    };
-  }
+  const reqObject = new Req({
+    req,
+  });
 
   try {
     const result = await db[req.params.db][req.params.table][req.params.action](
@@ -96,7 +87,7 @@ async function handlerFunction(req, res) {
         ...req.body,
         ...req.query,
         recordId: req.params.recordId,
-        req,
+        req: reqObject,
       }
     );
 
@@ -108,7 +99,10 @@ async function handlerFunction(req, res) {
       return res.status(200);
     }
 
-    return res.status(200).json(result);
+    return res.status(200).json({
+      data: result,
+      messages: reqObject.messages,
+    });
   } catch (error) {
     // Make sure to handle errors properly
     console.log('Error', error);
@@ -193,5 +187,53 @@ function validateProperties(...objects) {
 
   if (keysSet.has('recordId')) {
     throw new Error('recordId is a reserved key');
+  }
+}
+
+class Req {
+  constructor({ req }) {
+    this.action = req.params.action;
+    this.db = req.params.db;
+    this.table = req.params.table;
+    this.messages = [];
+    this.date = Date.now();
+    this.body = req.body;
+    this.params = req.params;
+    this.user = req.user;
+
+    if (req.params.recordId) {
+      req.record = {
+        id: req.params.recordId,
+        table: req.params.table,
+        db: req.params.db,
+      };
+    }
+  }
+
+  message({
+    severity = 'info',
+    summary = null,
+    detail = 'This is a message.',
+    life = 3000,
+  }) {
+    if (!summary) {
+      switch (severity) {
+        case 'info':
+          summary = 'Info';
+          break;
+        case 'warn':
+          summary = 'Warning';
+          break;
+        case 'error':
+          summary = 'Error';
+          break;
+        case 'success':
+          summary = 'Success';
+          break;
+        default:
+          summary = 'Info';
+      }
+    }
+    this.messages.push({ severity, summary, detail, life });
   }
 }

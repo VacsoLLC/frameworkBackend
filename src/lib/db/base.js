@@ -5,6 +5,7 @@ export default class Base {
     this.name = name || table;
     this.table = table;
     this.db = db;
+    this.dbDotTable = `${db}.${table}`;
     this.dbs = dbs;
     this.config = config;
     this.options = options;

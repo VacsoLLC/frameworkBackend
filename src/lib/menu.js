@@ -59,6 +59,8 @@ export default class Menu {
   }
 
   async getMenuItems(req, res) {
-    return res.status(200).json(await this.extractMenuItems(req, res));
+    return res
+      .status(200)
+      .json({ data: await this.extractMenuItems(req, res) });
   }
 }
