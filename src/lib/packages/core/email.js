@@ -14,6 +14,15 @@ export default class Email extends Base {
 
     this.mailboxes = {};
 
+    if (
+      !this.config.email ||
+      !this.config.email.mailboxes ||
+      this.config.email.mailboxes.length === 0
+    ) {
+      console.log('No email configuration found');
+      return;
+    }
+
     for (const mailbox of this.config.email.mailboxes) {
       this.mailboxes[mailbox.name] = new EmailProviders[mailbox.type]({
         config: mailbox,
@@ -35,6 +44,14 @@ export default class Email extends Base {
   }
 
   async sendEmail({ email, provider = this.config.email.defaultMailbox }) {
+    if (!provider) {
+      throw new Error(`No email provider provided`);
+    }
+
+    if (!this.mailboxes[provider]) {
+      throw new Error(`Email provider ${provider} not found`);
+    }
+
     const results = await this.mailboxes[provider].sendEmail(email);
 
     return results;
