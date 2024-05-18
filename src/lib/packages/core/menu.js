@@ -1,18 +1,17 @@
-export default class Menu {
-  constructor(router, db) {
-    this.router = router;
-    this.db = db;
+import Base from '../base.js';
 
-    router.all('/menu/getMenuItems', this.getMenuItems.bind(this));
+export default class Menu extends Base {
+  constructor(args) {
+    super({ className: 'menu', ...args });
   }
 
   async extractMenuItems(req, res) {
     const menuItems = {};
 
-    for (const dbName of Object.keys(this.db.databases)) {
-      for (const tableName of Object.keys(this.db.databases[dbName])) {
-        const table = this.db.databases[dbName][tableName];
-        const menuItem = table.getMenuItems();
+    for (const dbName of Object.keys(this.packages)) {
+      for (const tableName of Object.keys(this.packages[dbName])) {
+        const classInstance = this.packages[dbName][tableName];
+        const menuItem = classInstance.getMenuItems();
 
         for (const item of menuItem) {
           if (
@@ -58,9 +57,7 @@ export default class Menu {
     return menuItems;
   }
 
-  async getMenuItems(req, res) {
-    return res
-      .status(200)
-      .json({ data: await this.extractMenuItems(req, res) });
+  async getAllMenuItems(args) {
+    return await this.extractMenuItems(args.req);
   }
 }

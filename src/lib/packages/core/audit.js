@@ -1,12 +1,12 @@
-import Table from '../../table.js';
+import Table from '../table.js';
 
-export default class Time extends Table {
+export default class Audit extends Table {
   constructor(args) {
     super({
-      name: 'Time',
-      table: 'time',
+      name: 'Audit',
+      className: 'audit',
       ...args,
-      optoins: {
+      options: {
         id: {
           hiddenList: true,
         },
@@ -52,65 +52,61 @@ export default class Time extends Table {
 
     this.addManyToOne({
       referencedTableName: 'user',
-      columnName: 'author',
+      columnName: 'user',
       displayColumns: [
         {
           columnName: 'name',
-          friendlyName: 'Author',
+          friendlyName: 'Created By',
           listStyle: 'nowrap',
           hiddenCreate: true,
         },
       ],
       hiddenCreate: true,
-      tabName: 'Time',
+      tabName: 'Audit Created By',
       defaultValue: ({ user }) => {
+        console.log(user);
         return user.id;
       },
     });
 
     this.addColumn({
-      columnName: 'seconds',
-      friendlyName: 'Seconds',
-      columnType: 'integer',
+      columnName: 'action',
+      friendlyName: 'Action',
+      columnType: 'string',
+      helpText: 'The action that was run.',
+      fieldType: 'string',
     });
 
     this.addColumn({
-      columnName: 'time',
-      friendlyName: 'Time',
+      columnName: 'message',
+      friendlyName: 'Message',
       columnType: 'string',
-      hiddenCreate: true,
-      hiddenUpdate: true,
+      helpText: 'The human readable audit message.',
+      fieldType: 'textArea',
     });
 
-    this.addOnCreateOrUpdate((fields) => {
-      return {
-        ...fields,
-        time: this.formatTime(fields.seconds),
-      };
+    this.addColumn({
+      columnName: 'detail',
+      friendlyName: 'Detail',
+      columnType: 'text',
+      helpText: 'Contains the JSON passed to the function.',
+      fieldType: 'textArea',
     });
   }
 
-  formatTime(totalSeconds) {
-    const hours = Math.floor(totalSeconds / 3600)
-      .toString()
-      .padStart(2, '0');
-    const minutes = Math.floor((totalSeconds % 3600) / 60)
-      .toString()
-      .padStart(2, '0');
-    const seconds = (totalSeconds % 60).toString().padStart(2, '0');
-    return `${hours}:${minutes}:${seconds}`;
-  }
-
-  createEntry({ seconds, db, table, recordId, req }) {
-    return this.recordCreate({
-      req,
+  async log(args) {
+    await this.recordCreate({
       data: {
-        db,
-        table,
-        row: recordId,
-        seconds,
-        author: req.user.id,
+        db: args.db,
+        table: args.table,
+        row: args.row,
+        message: args.message,
+        detail: args.detail,
+        user: args.req.user.id || 0,
+        created: args.req.date || Date.now(),
+        action: args.req.action || 'Unknown',
       },
+      audit: false,
     });
   }
 }

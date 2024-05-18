@@ -1,8 +1,8 @@
-import Table from '../../table.js';
+import Table from '../table.js';
 
 export default class Group extends Table {
   constructor(args) {
-    super({ name: 'Group', table: 'group', ...args });
+    super({ name: 'Group', className: 'group', ...args });
 
     this.addRequiredRoles('Admin');
     this.addRequiredReadRoles('Authenticated');

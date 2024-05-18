@@ -1,20 +1,20 @@
-// this class is used by tables and non tables to provide a common interface for the backend to interact with classes
-
+// All framework classes must extend base. It provides a common interface.
 export default class Base {
-  constructor({ name, table, db, dbs, config, options = {} }) {
-    this.name = name || table;
-    this.table = table;
-    this.db = db;
-    this.dbDotTable = `${db}.${table}`;
-    this.dbs = dbs;
+  constructor({ className, packageName, packages, config, options = {} }) {
+    this.className = className;
+    this.packageName = packageName;
+    this.packages = packages;
     this.config = config;
     this.options = options;
-    this.requiredRoles = []; // Roles required to read or write to this table. The user must have ANY of these roles. This is role names and not IDs. If blank anyone can read and write.
-    this.requiredReadRoles = []; // Roles required to read this table. The user must have ANY of these roles. This is role names and not IDs. This is only used if the RequiredRoles is not blank.
+    this.requiredRoles = []; // Roles required to execute methods in this class. The user must have ANY of these roles. This is role names and not IDs. If blank any authenticated user can execute.
+    this.requiredReadRoles = []; // Roles required to execute methods that are flagged as read only. The user must have ANY of these roles. This is role names and not IDs. This is only used if the RequiredRoles is not blank.
     this.menuItems = [];
+    this.readOnlyMethods = {}; // Methods that are read only. The user must have any of the requiredReadRoles to execute these methods.
+    this.authenticationRequired = true; // If false, the user does not need to be authenticated to access this class.
   }
 
-  // This is called after all objects have been initialized. Overload it to do any async setup and/or interact with other objects.
+  // This is called after all packages and classes have been initialized.
+  // Overload it to do any async setup and/or interact with other objects.
   async init() {
     return;
   }
@@ -42,7 +42,7 @@ export default class Base {
     this.requiredReadRoles.push(...role);
   }
 
-  // Always call this after addREquiredRole to ensure that the menu item is automatically filtered for the roles that shouldn't see it.
+  // Always call this after addRequiredRole to ensure that the menu item is automatically filtered for the roles that shouldn't see it.
   async addMenuItem({
     label,
     parent = null,
@@ -63,8 +63,8 @@ export default class Base {
       parent,
       view,
       filter,
-      table: this.table,
-      db: this.db,
+      table: this.className,
+      db: this.packageName,
       order,
       icon,
       roles: requiredRoles,
@@ -73,15 +73,15 @@ export default class Base {
 
   async authorized({ req, action }) {
     if (this.requiredRoles.length == 0) {
-      // No roles required. Anyone can access this table.
+      // No roles required. Anyone can access this class.
       return true;
     }
 
     if (
       (await req.user.userHasAnyRoleName(...this.requiredReadRoles)) &&
-      this.readOnlyActions[action]
+      this.readOnlyMethods[action]
     ) {
-      // user has read only role and this action is a read only action
+      // user has read only role and this method is a read only method
       return true;
     }
 

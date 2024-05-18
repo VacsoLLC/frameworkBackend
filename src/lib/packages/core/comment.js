@@ -1,10 +1,10 @@
-import Table from '../../table.js';
+import Table from '../table.js';
 
-export default class Audit extends Table {
+export default class Comment extends Table {
   constructor(args) {
     super({
-      name: 'Audit',
-      table: 'audit',
+      name: 'Comment',
+      className: 'comment',
       ...args,
       options: {
         id: {
@@ -18,6 +18,7 @@ export default class Audit extends Table {
       friendlyName: 'Created',
       columnType: 'datetime',
       hiddenCreate: true,
+      readOnly: true,
       onCreate: () => {
         return Date.now();
       },
@@ -29,7 +30,6 @@ export default class Audit extends Table {
       columnType: 'string',
       hiddenList: true,
       hiddenUpdate: true,
-      //hidden: true,
     });
 
     this.addColumn({
@@ -38,7 +38,6 @@ export default class Audit extends Table {
       columnType: 'string',
       hiddenList: true,
       hiddenUpdate: true,
-      //hidden: true,
     });
 
     this.addColumn({
@@ -47,66 +46,59 @@ export default class Audit extends Table {
       columnType: 'integer',
       hiddenList: true,
       hiddenUpdate: true,
-      //hidden: true,
     });
 
     this.addManyToOne({
       referencedTableName: 'user',
-      columnName: 'user',
+      columnName: 'author',
       displayColumns: [
         {
           columnName: 'name',
-          friendlyName: 'Created By',
+          friendlyName: 'Author',
           listStyle: 'nowrap',
           hiddenCreate: true,
         },
       ],
       hiddenCreate: true,
-      tabName: 'Audit Created By',
+      tabName: 'Comments',
       defaultValue: ({ user }) => {
-        console.log(user);
         return user.id;
       },
     });
 
     this.addColumn({
-      columnName: 'action',
-      friendlyName: 'Action',
-      columnType: 'string',
-      helpText: 'The action that was run.',
-      fieldType: 'string',
+      columnName: 'type',
+      friendlyName: 'Type',
+      //columnType: 'string',
+      index: true,
+      helpText:
+        'Public comments are visible to the customer or end user. Private comments are visible only to techs, agents, and admins.',
+      defaultValue: 'Private',
+      fieldType: 'select',
+      options: ['Private', 'Public'],
     });
 
     this.addColumn({
-      columnName: 'message',
-      friendlyName: 'Message',
-      columnType: 'string',
-      helpText: 'The human readable audit message.',
-      fieldType: 'textArea',
-    });
-
-    this.addColumn({
-      columnName: 'detail',
-      friendlyName: 'Detail',
+      columnName: 'body',
+      friendlyName: 'Comment',
       columnType: 'text',
-      helpText: 'Contains the JSON passed to the function.',
+      index: true,
+      helpText: 'Comment',
       fieldType: 'textArea',
     });
   }
 
-  async log(args) {
-    await this.recordCreate({
+  async createComment({ req, db, table, recordId, comment, type = 'Private' }) {
+    return await this.recordCreate({
+      req,
       data: {
-        db: args.db,
-        table: args.table,
-        row: args.row,
-        message: args.message,
-        detail: args.detail,
-        user: args.req.user.id || 0,
-        created: args.req.date || Date.now(),
-        action: args.req.action || 'Unknown',
+        db,
+        table,
+        row: recordId,
+        body: comment,
+        author: req.user.id,
+        type,
       },
-      audit: false,
     });
   }
 }

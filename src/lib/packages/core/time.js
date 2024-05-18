@@ -1,12 +1,12 @@
-import Table from '../../table.js';
+import Table from '../table.js';
 
-export default class Comment extends Table {
+export default class Time extends Table {
   constructor(args) {
     super({
-      name: 'Comment',
-      table: 'comment',
+      name: 'Time',
+      className: 'time',
       ...args,
-      options: {
+      optoins: {
         id: {
           hiddenList: true,
         },
@@ -18,7 +18,6 @@ export default class Comment extends Table {
       friendlyName: 'Created',
       columnType: 'datetime',
       hiddenCreate: true,
-      readOnly: true,
       onCreate: () => {
         return Date.now();
       },
@@ -30,6 +29,7 @@ export default class Comment extends Table {
       columnType: 'string',
       hiddenList: true,
       hiddenUpdate: true,
+      //hidden: true,
     });
 
     this.addColumn({
@@ -38,6 +38,7 @@ export default class Comment extends Table {
       columnType: 'string',
       hiddenList: true,
       hiddenUpdate: true,
+      //hidden: true,
     });
 
     this.addColumn({
@@ -46,6 +47,7 @@ export default class Comment extends Table {
       columnType: 'integer',
       hiddenList: true,
       hiddenUpdate: true,
+      //hidden: true,
     });
 
     this.addManyToOne({
@@ -60,44 +62,54 @@ export default class Comment extends Table {
         },
       ],
       hiddenCreate: true,
-      tabName: 'Comments',
+      tabName: 'Time',
       defaultValue: ({ user }) => {
         return user.id;
       },
     });
 
     this.addColumn({
-      columnName: 'type',
-      friendlyName: 'Type',
-      //columnType: 'string',
-      index: true,
-      helpText:
-        'Public comments are visible to the customer or end user. Private comments are visible only to techs, agents, and admins.',
-      defaultValue: 'Private',
-      fieldType: 'select',
-      options: ['Private', 'Public'],
+      columnName: 'seconds',
+      friendlyName: 'Seconds',
+      columnType: 'integer',
     });
 
     this.addColumn({
-      columnName: 'body',
-      friendlyName: 'Comment',
-      columnType: 'text',
-      index: true,
-      helpText: 'Comment',
-      fieldType: 'textArea',
+      columnName: 'time',
+      friendlyName: 'Time',
+      columnType: 'string',
+      hiddenCreate: true,
+      hiddenUpdate: true,
+    });
+
+    this.addOnCreateOrUpdate((fields) => {
+      return {
+        ...fields,
+        time: this.formatTime(fields.seconds),
+      };
     });
   }
 
-  async createComment({ req, db, table, recordId, comment, type = 'Private' }) {
-    return await this.recordCreate({
+  formatTime(totalSeconds) {
+    const hours = Math.floor(totalSeconds / 3600)
+      .toString()
+      .padStart(2, '0');
+    const minutes = Math.floor((totalSeconds % 3600) / 60)
+      .toString()
+      .padStart(2, '0');
+    const seconds = (totalSeconds % 60).toString().padStart(2, '0');
+    return `${hours}:${minutes}:${seconds}`;
+  }
+
+  createEntry({ seconds, db, table, recordId, req }) {
+    return this.recordCreate({
       req,
       data: {
         db,
         table,
         row: recordId,
-        body: comment,
+        seconds,
         author: req.user.id,
-        type,
       },
     });
   }

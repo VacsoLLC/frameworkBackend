@@ -15,6 +15,12 @@ const columnTypeConversion = {
   text: 'text',
 };
 
+// This is the main class for creating tables. It extends the base class.
+// For database based classes:
+// the package maps to a database
+// the class maps to a table
+// the methods map to actions on that table or a row in that table
+
 export default class Table extends Base {
   constructor(...args) {
     super(...args);
@@ -29,8 +35,12 @@ export default class Table extends Base {
     this.actions = [];
     this.addRecords = []; // used to add records after the table is created, if they dont already exist. These can be records in other tables
     this.insertQueueForThisTable = []; // records to add to this table after initialization. Other tables can add records to this queue via thier addRecord method.
-    this.readOnlyActions = {}; // If a method name is listed as a true property it can be accessed by read only users
     this.initFunctions = []; // functions to run after the table is created
+
+    this.name = args[0].name; // Display table name. Displayed at the top of forms and tables.
+    this.db = this.packageName;
+    this.table = this.className;
+    this.dbDotTable = `${this.packageName}.${this.className}`;
 
     // TODO: finish buttons: colors, success message (true/false, default true), fix delete, make sure create button works still
 
@@ -69,23 +79,23 @@ export default class Table extends Base {
       newLine: true,
     });
 
-    this.addReadOnlyActions({
+    this.addReadOnlyMethods({
       recordGet: true,
       rowsGet: true,
       schemaGet: true,
     });
   }
 
-  async addReadOnlyActions(actions) {
-    this.readOnlyActions = { ...this.readOnlyActions, ...actions };
+  async addReadOnlyMethods(methods) {
+    this.readOnlyMethods = { ...this.readOnlyMethods, ...methods };
   }
 
-  async init(databases) {
+  async init(packages) {
     console.log(`Initializing DB: ${this.db} Table: ${this.table}`);
-    // Every table is a child of the audit table.
 
     this.knex = await this.getKnexInstance(this.db);
 
+    // Every table is a child of the audit table.
     this.addChild({
       db: 'core', // db name we want to make a child
       table: 'audit', // table name we want to make a child
@@ -99,7 +109,7 @@ export default class Table extends Base {
     });
 
     await this.initializeTable();
-    await this.registerChildWithParents(databases);
+    await this.registerChildWithParents(packages);
     await this.runInitFunctions();
   }
 
@@ -109,12 +119,12 @@ export default class Table extends Base {
     }
   }
 
-  async getKnexInstance(db) {
+  async getKnexInstance(packangeName) {
     if (!knexInstance) {
-      knexInstance = knex(this.config.db[db]);
+      knexInstance = knex(this.config.db[packangeName]);
     }
 
-    knexConnected[db] = true;
+    knexConnected[packangeName] = true;
 
     return knexInstance;
   }
@@ -589,7 +599,10 @@ export default class Table extends Base {
   async emit(event, args) {
     args.table = this.table;
     args.db = this.db;
-    await this.dbs.core.event.emit(`${this.db}.${this.table}.${event}`, args);
+    await this.packages.core.event.emit(
+      `${this.db}.${this.table}.${event}`,
+      args
+    );
   }
 
   async recordDelete({ recordId, req }) {
@@ -697,7 +710,7 @@ export default class Table extends Base {
       delete data.req;
     }
 
-    await this.dbs.core.audit.log({
+    await this.packages.core.audit.log({
       message,
       db: this.db,
       table: this.table,

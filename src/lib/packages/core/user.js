@@ -1,9 +1,9 @@
-import Table from '../../table.js';
+import Table from '../table.js';
 import bcrypt from 'bcrypt';
 
 export default class UserTable extends Table {
   constructor(args) {
-    super({ name: 'User', table: 'user', ...args });
+    super({ name: 'User', className: 'user', ...args });
 
     this.addRequiredRoles('Admin');
     this.addRequiredReadRoles('Authenticated');
@@ -174,17 +174,17 @@ export default class UserTable extends Table {
       return false;
     }
 
-    const groups = await this.dbs.core.user_group.rowsGet({
+    const groups = await this.packages.core.user_group.rowsGet({
       where: { id2: user.id },
     });
 
     user.groups = groups.rows.map((group) => group.id1);
 
-    const user_roles = await this.dbs.core.user_role.rowsGet({
+    const user_roles = await this.packages.core.user_role.rowsGet({
       where: { id2: user.id },
     });
 
-    const group_roles = await this.dbs.core.group_role.rowsGet({
+    const group_roles = await this.packages.core.group_role.rowsGet({
       where: { id2: user.id },
     });
 

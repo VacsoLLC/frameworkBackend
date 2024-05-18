@@ -1,8 +1,8 @@
-import Table from '../../table.js';
+import Table from '../table.js';
 
 export default class Role extends Table {
   constructor(args) {
-    super({ name: 'Role', table: 'role', ...args });
+    super({ name: 'Role', className: 'role', ...args });
 
     this.addRequiredRoles('Admin');
 

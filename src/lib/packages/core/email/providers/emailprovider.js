@@ -2,7 +2,7 @@ export default class EmailProvider {
   constructor({ config, callBack, dbs }) {
     this.config = config;
     this.callBack = callBack;
-    this.dbs = dbs;
+    this.packages = dbs;
   }
 
   async init() {

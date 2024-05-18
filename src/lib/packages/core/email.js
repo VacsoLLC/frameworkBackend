@@ -1,6 +1,6 @@
 import fs from 'fs';
 
-import Base from '../../base.js';
+import Base from '../base.js';
 
 import Handlebars from 'handlebars';
 import EmailProviders from './email/providers/index.js';
@@ -10,7 +10,7 @@ import { fileURLToPath } from 'url';
 
 export default class Email extends Base {
   constructor(args) {
-    super({ table: 'email', ...args });
+    super({ className: 'email', ...args });
 
     this.mailboxes = {};
 
@@ -18,7 +18,7 @@ export default class Email extends Base {
       this.mailboxes[mailbox.name] = new EmailProviders[mailbox.type]({
         config: mailbox,
         callBack: this.processEmail.bind(this),
-        dbs: this.dbs,
+        dbs: this.packages,
       });
     }
   }
@@ -27,8 +27,6 @@ export default class Email extends Base {
     this.templates = {};
 
     const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-
 
     for (const provider of Object.values(this.mailboxes)) {
       await provider.init();
@@ -45,7 +43,7 @@ export default class Email extends Base {
   async processEmail(email) {
     console.log('email', email);
     try {
-      this.dbs.core.event.emit('email', email);
+      this.packages.core.event.emit('email', email);
 
       return true;
     } catch (error) {

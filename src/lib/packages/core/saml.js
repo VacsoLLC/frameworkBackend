@@ -1,14 +1,11 @@
 import saml2 from 'saml2-js';
-import { createToken } from './token.js';
 
-export default class Saml {
-  constructor(router, db, config) {
-    this.router = router;
-    this.db = db;
-    this.config = config;
+import Base from '../base.js';
 
-    router.all('/saml/list', this.list.bind(this));
-    router.post('/saml/:idp', this.saml.bind(this));
+export default class Saml extends Base {
+  constructor(args) {
+    super({ className: 'saml', ...args });
+    this.authenticationRequired = false;
 
     this.configs = {};
 
@@ -19,7 +16,7 @@ export default class Saml {
 
       this.configs[key].sp_options = {
         entity_id: value.entity || 'ticket',
-        assert_endpoint: `https://${this.config.saml.domain}/api/saml/${key}`,
+        assert_endpoint: `https://${this.config.saml.domain}/api/core/saml/acs/${key}`,
       };
 
       this.configs[key].idp_options = {
@@ -49,28 +46,28 @@ export default class Saml {
       });
     }
 
-    return res.json({ data: list, messages: [] });
+    return list;
   }
 
-  async saml(req, res) {
-    const idp = req.params.idp;
+  async acs({ recordId, req }) {
+    const idp = recordId;
 
     const saml_response = await this.postAssertWithPromise(req.body, idp);
 
-    console.log('saml_response', saml_response);
-
-    const user = await this.db.core.user.getUser(saml_response.user.name_id);
+    const user = await this.packages.core.user.getUser(
+      saml_response.user.name_id
+    );
 
     if (!user) {
-      console.log('User not found');
-
-      return res.status(402).json({ message: 'User not found.' });
+      throw new Error(`User not found ${saml_response.user.name_id}`);
     }
 
     console.log('Authentication successful');
-    const token = createToken(user, this.config);
+    const token = this.packages.core.login._createToken({ user });
 
-    return res.redirect(`/token?token=${token}`);
+    return {
+      redirect: `/token?token=${token}`,
+    };
   }
 
   // Wrap OOB function in a promise so we can use async/await

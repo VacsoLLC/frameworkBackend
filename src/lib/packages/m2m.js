@@ -3,8 +3,10 @@ import Table from './table.js';
 export default class m2m extends Table {
   constructor(args) {
     super({
-      table: args.m2m.table,
-      db: args.m2m.db,
+      packageName: args.m2m.db,
+      className: args.m2m.table,
+      db: args.m2m.db, // clean up/remove this
+      table: args.m2m.table, // clean up/remove this
       name: args.m2m.friendlyName,
       ...args,
     });

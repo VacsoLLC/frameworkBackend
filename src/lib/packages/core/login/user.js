@@ -17,7 +17,7 @@ export default class User {
 
     const roleIDs = await Promise.all(
       roles.map(async (role) => {
-        return await this.db.core.role.roleNameToID(role);
+        return await this.packages.core.role.roleNameToID(role);
       })
     );
 
