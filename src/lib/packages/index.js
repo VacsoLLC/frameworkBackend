@@ -61,7 +61,7 @@ export default class DB {
         }
 
         for (const manyToMany of manyToManys) {
-          const m2mInstance = new m2m({ m2m: manyToMany, dbs: this });
+          const m2mInstance = new m2m({ m2m: manyToMany, dbs: this, packages: this.packages });
           this[packageName][m2mInstance.className] = m2mInstance;
           this.packages[packageName][m2mInstance.className] = m2mInstance;
         }
