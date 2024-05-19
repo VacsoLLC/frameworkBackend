@@ -17,6 +17,7 @@ export default class Email extends Base {
     if (
       !this.config.email ||
       !this.config.email.mailboxes ||
+      Array.isArray(this.config.email.mailboxes) === false ||
       this.config.email.mailboxes.length === 0
     ) {
       console.log('No email configuration found');
