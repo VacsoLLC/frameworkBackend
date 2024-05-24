@@ -7,7 +7,7 @@ export default class Group extends Table {
     this.addRequiredRoles('Admin');
     this.addRequiredReadRoles('Authenticated');
 
-    this.addColumn({
+    this.columnAdd({
       columnName: 'name',
       friendlyName: 'Name',
       columnType: 'string',
@@ -15,7 +15,7 @@ export default class Group extends Table {
       helpText: 'Group Name',
     });
 
-    this.addManyToMany({
+    this.manyToManyAdd({
       table1: {
         db: 'core',
         table: 'group',

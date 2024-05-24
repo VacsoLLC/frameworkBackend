@@ -13,7 +13,7 @@ export default class Audit extends Table {
       },
     });
 
-    this.addColumn({
+    this.columnAdd({
       columnName: 'created',
       friendlyName: 'Created',
       columnType: 'datetime',
@@ -23,7 +23,7 @@ export default class Audit extends Table {
       },
     });
 
-    this.addColumn({
+    this.columnAdd({
       columnName: 'db',
       friendlyName: 'Database',
       columnType: 'string',
@@ -32,7 +32,7 @@ export default class Audit extends Table {
       //hidden: true,
     });
 
-    this.addColumn({
+    this.columnAdd({
       columnName: 'table',
       friendlyName: 'Table',
       columnType: 'string',
@@ -41,7 +41,7 @@ export default class Audit extends Table {
       //hidden: true,
     });
 
-    this.addColumn({
+    this.columnAdd({
       columnName: 'row',
       friendlyName: 'Row',
       columnType: 'integer',
@@ -50,7 +50,7 @@ export default class Audit extends Table {
       //hidden: true,
     });
 
-    this.addManyToOne({
+    this.manyToOneAdd({
       referencedTableName: 'user',
       columnName: 'user',
       displayColumns: [
@@ -69,7 +69,7 @@ export default class Audit extends Table {
       },
     });
 
-    this.addColumn({
+    this.columnAdd({
       columnName: 'action',
       friendlyName: 'Action',
       columnType: 'string',
@@ -77,7 +77,7 @@ export default class Audit extends Table {
       fieldType: 'string',
     });
 
-    this.addColumn({
+    this.columnAdd({
       columnName: 'message',
       friendlyName: 'Message',
       columnType: 'string',
@@ -85,7 +85,7 @@ export default class Audit extends Table {
       fieldType: 'textArea',
     });
 
-    this.addColumn({
+    this.columnAdd({
       columnName: 'detail',
       friendlyName: 'Detail',
       columnType: 'text',

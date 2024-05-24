@@ -13,7 +13,7 @@ export default class Time extends Table {
       },
     });
 
-    this.addColumn({
+    this.columnAdd({
       columnName: 'created',
       friendlyName: 'Created',
       columnType: 'datetime',
@@ -23,7 +23,7 @@ export default class Time extends Table {
       },
     });
 
-    this.addColumn({
+    this.columnAdd({
       columnName: 'db',
       friendlyName: 'Database',
       columnType: 'string',
@@ -32,7 +32,7 @@ export default class Time extends Table {
       //hidden: true,
     });
 
-    this.addColumn({
+    this.columnAdd({
       columnName: 'table',
       friendlyName: 'Table',
       columnType: 'string',
@@ -41,7 +41,7 @@ export default class Time extends Table {
       //hidden: true,
     });
 
-    this.addColumn({
+    this.columnAdd({
       columnName: 'row',
       friendlyName: 'Row',
       columnType: 'integer',
@@ -50,7 +50,7 @@ export default class Time extends Table {
       //hidden: true,
     });
 
-    this.addManyToOne({
+    this.manyToOneAdd({
       referencedTableName: 'user',
       columnName: 'author',
       displayColumns: [
@@ -68,13 +68,13 @@ export default class Time extends Table {
       },
     });
 
-    this.addColumn({
+    this.columnAdd({
       columnName: 'seconds',
       friendlyName: 'Seconds',
       columnType: 'integer',
     });
 
-    this.addColumn({
+    this.columnAdd({
       columnName: 'time',
       friendlyName: 'Time',
       columnType: 'string',
@@ -82,7 +82,7 @@ export default class Time extends Table {
       hiddenUpdate: true,
     });
 
-    this.addOnCreateOrUpdate((fields) => {
+    this.onCreateOrUpdateAdd((fields) => {
       return {
         ...fields,
         time: this.formatTime(fields.seconds),

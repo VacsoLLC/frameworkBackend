@@ -44,20 +44,20 @@ export default class Table extends Base {
 
     // TODO: finish buttons: colors, success message (true/false, default true), fix delete, make sure create button works still
 
-    this.addAction({
+    this.actionAdd({
       label: 'Update',
       method: 'recordUpdate',
       helpText: 'Update the record and stay here',
     });
 
-    this.addAction({
+    this.actionAdd({
       label: 'Update & Close',
       method: 'recordUpdate',
       helpText: 'Update the record and close',
       close: true,
     });
 
-    this.addAction({
+    this.actionAdd({
       label: 'Close',
       helpText: 'Close Record',
       close: true,
@@ -65,7 +65,7 @@ export default class Table extends Base {
       showSuccess: false,
     });
 
-    this.addAction({
+    this.actionAdd({
       label: 'Delete',
       helpText: 'Delete Record',
       method: 'recordDelete',
@@ -75,18 +75,18 @@ export default class Table extends Base {
       color: 'danger',
     });
 
-    this.addAction({
+    this.actionAdd({
       newLine: true,
     });
 
-    this.addReadOnlyMethods({
+    this.readOnlyMethodsAdd({
       recordGet: true,
       rowsGet: true,
       schemaGet: true,
     });
   }
 
-  async addReadOnlyMethods(methods) {
+  async readOnlyMethodsAdd(methods) {
     this.readOnlyMethods = { ...this.readOnlyMethods, ...methods };
   }
 
@@ -96,7 +96,7 @@ export default class Table extends Base {
     this.knex = await this.getKnexInstance(this.db);
 
     // Every table is a child of the audit table.
-    this.addChild({
+    this.childAdd({
       db: 'core', // db name we want to make a child
       table: 'audit', // table name we want to make a child
       columnmap: {
@@ -147,7 +147,7 @@ export default class Table extends Base {
       }
     }
 
-    this.addColumn({
+    this.columnAdd({
       friendlyName: 'ID',
       columnName: 'id',
       columnType: 'integer',
@@ -209,7 +209,7 @@ export default class Table extends Base {
   async registerChildWithParents(databases) {
     for (const parent of this.parents) {
       const parentTable = databases[parent.db][parent.table];
-      await parentTable.addChild({
+      await parentTable.childAdd({
         db: this.db,
         table: this.table,
         //column: parent.column,
@@ -221,11 +221,11 @@ export default class Table extends Base {
     }
   }
 
-  async addChild(args) {
+  async childAdd(args) {
     this.children.push(args);
   }
 
-  async addColumn({
+  async columnAdd({
     columnName, // The ID of the column in the code
     actualColumnName = null, // the actual column name in the table, used for joins
     table = this.table, // the table this column is from
@@ -330,11 +330,11 @@ export default class Table extends Base {
     };
   }
 
-  async addManyToMany(args) {
+  async manyToManyAdd(args) {
     this.manyToMany.push(args);
   }
 
-  async addManyToOne({
+  async manyToOneAdd({
     referencedTableName,
     referencedDb = this.db,
     columnName = null,
@@ -347,7 +347,7 @@ export default class Table extends Base {
     columnName = columnName || `${referencedTableName}_id`;
 
     for (const columnData of displayColumns) {
-      await this.addColumn({
+      await this.columnAdd({
         columnType: 'string', // Assuming 'string' as a default type for display columns
         table: referencedTableName,
         tableAlias: columnName,
@@ -358,7 +358,7 @@ export default class Table extends Base {
       });
     }
 
-    await this.addColumn({
+    await this.columnAdd({
       columnName,
       columnType: 'integer',
       display: false,
@@ -379,20 +379,20 @@ export default class Table extends Base {
     });
   }
 
-  addOnCreate(callback) {
+  onCreateAdd(callback) {
     this.onCreate.push(callback);
   }
 
-  addOnUpdate(callback) {
+  onUpdateAdd(callback) {
     this.onUpdate.push(callback);
   }
 
-  addOnCreateOrUpdate(callback) {
+  onCreateOrUpdateAdd(callback) {
     this.onCreate.push(callback);
     this.onUpdate.push(callback);
   }
 
-  addAction(action) {
+  actionAdd(action) {
     if (!action.hasOwnProperty('showSuccess')) {
       action.showSuccess = true; // Set 'showSuccess' to true if it doesn't exist
     }
@@ -459,7 +459,7 @@ export default class Table extends Base {
     let count = null;
     if (returnCount) {
       const countQuery = query.clone().count('* as count');
-      const result = await this.runQuery(countQuery);
+      const result = await this.queryRun(countQuery);
       count = result[0].count;
     }
 
@@ -467,7 +467,7 @@ export default class Table extends Base {
     if (limit) query = query.limit(limit);
     if (offset) query = query.offset(offset);
 
-    const rows = await this.runQuery(query);
+    const rows = await this.queryRun(query);
     return {
       rows,
       count,
@@ -489,11 +489,11 @@ export default class Table extends Base {
     };
   }
 
-  async getActions() {
+  async actionsGet() {
     return this.actions;
   }
 
-  async getChildren() {
+  async childrenGet() {
     return this.children;
   }
 
@@ -517,7 +517,7 @@ export default class Table extends Base {
 
     try {
       const query = this.knex.from(this.dbDotTable).insert(data); //.returning('id');
-      const [recordId] = await this.runQuery(query);
+      const [recordId] = await this.queryRun(query);
       console.log(`Record created with ID ${recordId} in ${this.table}`);
 
       data.id = recordId;
@@ -570,7 +570,7 @@ export default class Table extends Base {
       .from(this.dbDotTable)
       .where('id', recordId)
       .update(data);
-    const result = await this.runQuery(query);
+    const result = await this.queryRun(query);
 
     for (const columnName in this.columns) {
       const column = this.columns[columnName];
@@ -615,7 +615,7 @@ export default class Table extends Base {
       .from(this.dbDotTable)
       .where('id', recordId)
       .delete();
-    const result = await this.runQuery(query);
+    const result = await this.queryRun(query);
 
     await this.audit({
       message: 'Record Delete',
@@ -662,7 +662,7 @@ export default class Table extends Base {
         .first();
 
       // Run the query
-      const result = await this.runQuery(query);
+      const result = await this.queryRun(query);
       return result;
     } catch (err) {
       console.error(`Error fetching record from ${this.table}: ${err}`);
@@ -670,7 +670,7 @@ export default class Table extends Base {
     }
   }
 
-  async runQuery(queryBuilder) {
+  async queryRun(queryBuilder) {
     // Print the SQL it is about to run
     // TODO add timeout. Maybe up at the router?
 
@@ -733,6 +733,7 @@ export default class Table extends Base {
     }
   }
 
+  // TODO: rename?
   async addRecord(record) {
     if (!record.db) {
       record.db = this.db;
@@ -746,7 +747,7 @@ export default class Table extends Base {
     // TODO finish implementing this.
   }
 
-  addInit(record) {
+  initAdd(record) {
     this.initFunctions.push(record);
   }
 }

@@ -65,7 +65,6 @@ export default class Login extends Base {
       });
       return user;
     } catch (error) {
-      console.log('Failed to verify user token.', error);
       return false;
     }
   }

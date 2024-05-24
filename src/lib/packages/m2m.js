@@ -13,7 +13,7 @@ export default class m2m extends Table {
 
     const m2m = args.m2m;
 
-    this.addManyToOne({
+    this.manyToOneAdd({
       columnName: 'id1',
       columnType: 'integer',
       referencedTableName: m2m.table1.table,
@@ -27,7 +27,7 @@ export default class m2m extends Table {
       tabName: m2m.friendlyName,
     });
 
-    this.addManyToOne({
+    this.manyToOneAdd({
       columnName: 'id2',
       columnType: 'integer',
       referencedTableName: m2m.table2.table,

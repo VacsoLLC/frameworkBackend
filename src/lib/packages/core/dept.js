@@ -6,7 +6,7 @@ export default class DeptTable extends Table {
 
     this.addRequiredRoles('Admin');
 
-    this.addColumn({
+    this.columnAdd({
       columnName: 'name',
       friendlyName: 'Name',
       columnType: 'string',

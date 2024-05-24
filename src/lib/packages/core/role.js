@@ -6,7 +6,7 @@ export default class Role extends Table {
 
     this.addRequiredRoles('Admin');
 
-    this.addColumn({
+    this.columnAdd({
       columnName: 'name',
       friendlyName: 'Name',
       columnType: 'string',
@@ -14,7 +14,7 @@ export default class Role extends Table {
       helpText: 'Role Name',
     });
 
-    this.addManyToMany({
+    this.manyToManyAdd({
       table1: {
         db: 'core',
         table: 'role',
@@ -32,7 +32,7 @@ export default class Role extends Table {
       db: 'core',
     });
 
-    this.addManyToMany({
+    this.manyToManyAdd({
       table1: {
         db: 'core',
         table: 'role',

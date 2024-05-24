@@ -13,7 +13,7 @@ export default class Comment extends Table {
       },
     });
 
-    this.addColumn({
+    this.columnAdd({
       columnName: 'created',
       friendlyName: 'Created',
       columnType: 'datetime',
@@ -24,7 +24,7 @@ export default class Comment extends Table {
       },
     });
 
-    this.addColumn({
+    this.columnAdd({
       columnName: 'db',
       friendlyName: 'Database',
       columnType: 'string',
@@ -32,7 +32,7 @@ export default class Comment extends Table {
       hiddenUpdate: true,
     });
 
-    this.addColumn({
+    this.columnAdd({
       columnName: 'table',
       friendlyName: 'Table',
       columnType: 'string',
@@ -40,7 +40,7 @@ export default class Comment extends Table {
       hiddenUpdate: true,
     });
 
-    this.addColumn({
+    this.columnAdd({
       columnName: 'row',
       friendlyName: 'Row',
       columnType: 'integer',
@@ -48,7 +48,7 @@ export default class Comment extends Table {
       hiddenUpdate: true,
     });
 
-    this.addManyToOne({
+    this.manyToOneAdd({
       referencedTableName: 'user',
       columnName: 'author',
       displayColumns: [
@@ -66,7 +66,7 @@ export default class Comment extends Table {
       },
     });
 
-    this.addColumn({
+    this.columnAdd({
       columnName: 'type',
       friendlyName: 'Type',
       //columnType: 'string',
@@ -78,7 +78,7 @@ export default class Comment extends Table {
       options: ['Private', 'Public'],
     });
 
-    this.addColumn({
+    this.columnAdd({
       columnName: 'body',
       friendlyName: 'Comment',
       columnType: 'text',

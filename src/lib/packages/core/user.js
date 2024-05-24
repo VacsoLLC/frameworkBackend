@@ -8,7 +8,7 @@ export default class UserTable extends Table {
     this.addRequiredRoles('Admin');
     this.addRequiredReadRoles('Authenticated');
 
-    this.addColumn({
+    this.columnAdd({
       columnName: 'name',
       friendlyName: 'Full Name',
       columnType: 'string',
@@ -16,7 +16,7 @@ export default class UserTable extends Table {
       helpText: 'The full name of the user',
     });
 
-    this.addColumn({
+    this.columnAdd({
       columnName: 'password',
       friendlyName: 'Password',
       columnType: 'password',
@@ -24,7 +24,7 @@ export default class UserTable extends Table {
       hidden: true,
     });
 
-    this.addColumn({
+    this.columnAdd({
       columnName: 'email',
       friendlyName: 'Email Address',
       columnType: 'string',
@@ -35,7 +35,7 @@ export default class UserTable extends Table {
       },
     });
 
-    this.addColumn({
+    this.columnAdd({
       columnName: 'age',
       friendlyName: 'Age',
       columnType: 'integer',
@@ -43,7 +43,7 @@ export default class UserTable extends Table {
     });
 
     // Example usage with custom column name and displayColumns (though displayColumns isn't directly utilized in schema creation)
-    this.addManyToOne({
+    this.manyToOneAdd({
       referencedTableName: 'dept',
       columnName: 'dept',
       displayColumns: [{ columnName: 'name', friendlyName: 'Department Name' }],
@@ -57,7 +57,7 @@ export default class UserTable extends Table {
       order: 1,
     });
 
-    this.addAction({
+    this.actionAdd({
       label: 'Reset Password',
       method: 'resetPassword',
       verify:
