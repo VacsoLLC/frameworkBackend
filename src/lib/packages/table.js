@@ -36,6 +36,7 @@ export default class Table extends Base {
     this.addRecords = []; // used to add records after the table is created, if they dont already exist. These can be records in other tables
     this.insertQueueForThisTable = []; // records to add to this table after initialization. Other tables can add records to this queue via thier addRecord method.
     this.initFunctions = []; // functions to run after the table is created
+    this.queryModifier = {}; // used to modify queries before they are run
 
     this.name = args[0].name; // Display table name. Displayed at the top of forms and tables.
     this.db = this.packageName;
@@ -84,6 +85,10 @@ export default class Table extends Base {
       rowsGet: true,
       schemaGet: true,
     });
+  }
+
+  queryModifierAdd(name, callback) {
+    this.queryModifier[name] = callback;
   }
 
   async readOnlyMethodsAdd(methods) {
@@ -184,8 +189,8 @@ export default class Table extends Base {
     if (tableCreated) {
       for (const record of this.insertQueueForThisTable) {
         let recordToCreate = { ...record };
-        delete recordToCreate.table;
-        delete recordToCreate.db;
+        delete recordToCreate.className;
+        delete recordToCreate.packageName;
         for (const columnName in recordToCreate) {
           // if value is a function, run the function
           if (typeof recordToCreate[columnName] == 'function') {
@@ -237,9 +242,11 @@ export default class Table extends Base {
     fieldType = 'text',
     index = false, // index this column?
 
-    //sourceTable = this.tableName, // the table this column is from
+    // Reference fields
     join = false, // if this is a foreign key, what table does it join to?
     joinDb = false, // if this is a foreign key, what db does it join to?
+    referenceCreate = false, // If true, shows a create button next to the reference field
+    queryModifier = false, // Can be used to modify the query for references before it is run. Useful for filtering in fancy ways.
 
     display = true, // display this in the gui
     friendlyName, // The display of the column in the GUI
@@ -327,6 +334,8 @@ export default class Table extends Base {
       listStyle,
       options,
       readOnly,
+      referenceCreate,
+      queryModifier,
     };
   }
 
@@ -337,11 +346,13 @@ export default class Table extends Base {
   async manyToOneAdd({
     referencedTableName,
     referencedDb = this.db,
+    referenceCreate = false, // If true, shows a create button next to the reference field
     columnName = null,
     displayColumns = [],
     tabName = this.table,
     defaultValue,
     hiddenCreate,
+    queryModifier = false, // Can be used to modify the query for references before it is run. Useful for filtering in fancy ways.
     ...args
   }) {
     columnName = columnName || `${referencedTableName}_id`;
@@ -368,6 +379,8 @@ export default class Table extends Base {
       friendlyColumnName: displayColumns[0].columnName,
       defaultValue,
       hiddenCreate,
+      referenceCreate,
+      queryModifier,
       ...args,
     });
 
@@ -396,6 +409,7 @@ export default class Table extends Base {
     if (!action.hasOwnProperty('showSuccess')) {
       action.showSuccess = true; // Set 'showSuccess' to true if it doesn't exist
     }
+    action.id = this.actions.length;
     this.actions.push(action);
   }
 
@@ -413,11 +427,17 @@ export default class Table extends Base {
     limit,
     offset,
     returnCount = false,
+    columns = [],
+    queryModifier = false,
   }) {
     let selectedColumns = [];
     let query = this.knex.from(this.dbDotTable);
 
     for (const columnName in this.columns) {
+      if (columns.length > 0 && !columns.includes(columnName)) {
+        continue;
+      }
+
       if (this.columns[columnName].columnType == 'password') {
         // never ever ever read passwords
         continue;
@@ -454,7 +474,10 @@ export default class Table extends Base {
     } else if (where) {
       query = query.where(where);
     }
-    console.log('arguments', arguments);
+
+    if (queryModifier && this.queryModifier[queryModifier]) {
+      query = this.queryModifier[queryModifier](query, this.knex);
+    }
 
     let count = null;
     if (returnCount) {
@@ -546,13 +569,21 @@ export default class Table extends Base {
 
   async recordUpdate({ recordId, data, req }) {
     for (const columnName in this.columns) {
-      const column = this.columns[columnName];
-      if (column.columnType == 'password' && data && data[columnName]) {
+      if (!data.hasOwnProperty(columnName)) {
+        continue;
+      }
+
+      const columnSettings = this.columns[columnName];
+
+      if (columnSettings.columnType == 'password' && data && data[columnName]) {
         data[columnName] = await this.hashPassword(data[columnName]);
       }
 
-      if (column.onUpdate && typeof column.onUpdate == 'function') {
-        data[columnName] = column.onUpdate(data[columnName]);
+      if (
+        columnSettings.onUpdate &&
+        typeof columnSettings.onUpdate == 'function'
+      ) {
+        data[columnName] = columnSettings.onUpdate(data[columnName]);
       }
     }
 
@@ -733,14 +764,16 @@ export default class Table extends Base {
     }
   }
 
-  // TODO: rename?
+  // Add a record to a table at table creation time
+  // This is useful for adding default records to a table
+  // Can also be used to add records to other tables by speicifying the db and table
   async addRecord(record) {
-    if (!record.db) {
-      record.db = this.db;
+    if (!record.packageName) {
+      record.packageName = this.packageName;
     }
 
-    if (!record.table) {
-      record.table = this.table;
+    if (!record.className) {
+      record.className = this.className;
     }
 
     this.addRecords.push(record);

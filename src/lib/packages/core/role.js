@@ -14,6 +14,13 @@ export default class Role extends Table {
       helpText: 'Role Name',
     });
 
+    this.columnAdd({
+      columnName: 'desc',
+      friendlyName: 'Description',
+      columnType: 'string',
+      helpText: 'Role Description',
+    });
+
     this.manyToManyAdd({
       table1: {
         db: 'core',
@@ -61,12 +68,14 @@ export default class Role extends Table {
     this.addRecord({
       id: 1,
       name: 'Authenticated',
-    }); //
+      desc: 'Any user that has successfully authenticated will have this role. This is a special role. Do not assign to users.',
+    });
 
     this.addRecord({
       id: 2,
       name: 'Admin',
-    }); //
+      desc: 'Admin users can add or remove users, groups and roles.',
+    });
 
     this.nameToIDCache = {};
   }

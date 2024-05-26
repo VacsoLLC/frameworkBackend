@@ -95,8 +95,8 @@ export default class UserTable extends Table {
       id: 1,
       id1: 2, // ID of admin role that is auto created
       id2: 1, // ID of the admin user that is auto created
-      db: 'core',
-      table: 'user_role',
+      packageName: 'core',
+      className: 'user_role',
     }); //
   }
 

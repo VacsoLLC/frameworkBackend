@@ -61,23 +61,27 @@ export default class DB {
         }
 
         for (const manyToMany of manyToManys) {
-          const m2mInstance = new m2m({ m2m: manyToMany, dbs: this, packages: this.packages });
+          const m2mInstance = new m2m({
+            m2m: manyToMany,
+            dbs: this,
+            packages: this.packages,
+          });
           this[packageName][m2mInstance.className] = m2mInstance;
           this.packages[packageName][m2mInstance.className] = m2mInstance;
         }
 
         for (const addRecord of addRecords) {
-          this[addRecord.db][addRecord.table].insertQueueForThisTable.push(
+          this[addRecord.packageName][addRecord.className].insertQueueForThisTable.push(
             addRecord
           );
         }
       }
     }
 
-    for (const db of Object.keys(this.packages)) {
-      for (const table of Object.keys(this.packages[db])) {
-        if (this.packages[db][table].init) {
-          await this.packages[db][table].init(this.packages);
+    for (const packageName of Object.keys(this.packages)) {
+      for (const className of Object.keys(this.packages[packageName])) {
+        if (this.packages[packageName][className].init) {
+          await this.packages[packageName][className].init(this.packages);
         }
       }
     }
