@@ -25,7 +25,7 @@ export default class Microsoft extends EmailProvider {
 
   async archiveEmail(id) {
     await this.client
-      .api(`/users/tripp@hivemindlegal.com/messages/${id}/move`)
+      .api(`/users/${this.config.email}/messages/${id}/move`)
       .header('Prefer', 'IdType="ImmutableId"')
       .post({ destinationId: 'archive' });
   }
