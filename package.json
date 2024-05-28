@@ -1,6 +1,6 @@
 {
   "name": "@vacso/frameworkbackend",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Welcome to the Vacso Framework, an open-source project designed to streamline the development of enterprise React web applications. Brought to you by Vacso, this framework is a comprehensive solution for both front-end and back-end development, allowing you to focus on crafting your unique data model and business rules.",
   "main": "index.js",
   "scripts": {
