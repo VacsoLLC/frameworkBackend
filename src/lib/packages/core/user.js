@@ -74,9 +74,14 @@ export default class UserTable extends Table {
       },
     });
 
+    // A special user that is used for system actions
+    this.addRecord({
+      name: 'System',
+      email: 'System@localhost',
+    });
+
     // this is a default record that will get added after the table is created
     this.addRecord({
-      id: 1,
       name: 'Admin',
       email: 'admin',
       password: () => {
@@ -94,7 +99,7 @@ export default class UserTable extends Table {
     this.addRecord({
       id: 1,
       id1: 2, // ID of admin role that is auto created
-      id2: 1, // ID of the admin user that is auto created
+      id2: 2, // ID of the admin user that is auto created
       packageName: 'core',
       className: 'user_role',
     }); //
