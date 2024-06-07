@@ -117,6 +117,18 @@ export default class Microsoft extends EmailProvider {
   }
 
   async setupClient() {
+    if (
+      !this.config.auth ||
+      !this.config.auth.clientId ||
+      !this.config.auth.clientSecret ||
+      !this.config.auth.tenantId
+    ) {
+      console.log(
+        'Microsoft email client not configured correctly. Missing values in auth object. (clientId, clientSecret, tenantId)'
+      );
+      return false;
+    }
+
     try {
       const credential = new ClientSecretCredential(
         this.config.auth.tenantId,

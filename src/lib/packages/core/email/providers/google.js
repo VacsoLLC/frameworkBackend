@@ -7,6 +7,18 @@ export default class Google extends EmailProvider {
   constructor(config) {
     super(config);
 
+    if (
+      !this.config.auth ||
+      !this.config.auth.client_email ||
+      !this.config.auth.private_key ||
+      !this.config.email
+    ) {
+      console.log(
+        'Missing required config values for Google email provider. (auth.client_email, auth.private_key, email)'
+      );
+      return;
+    }
+
     const client = new google.auth.JWT(
       this.config.auth.client_email,
       null,
@@ -22,6 +34,10 @@ export default class Google extends EmailProvider {
   }
 
   async init() {
+    if (!this.gmail) {
+      return;
+    }
+
     setInterval(() => {
       console.log(`Checking email for ${this.config.name}...`);
       this.checkMessages();
