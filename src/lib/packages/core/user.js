@@ -42,14 +42,6 @@ export default class UserTable extends Table {
       helpText: 'The age of the user',
     });
 
-    // Example usage with custom column name and displayColumns (though displayColumns isn't directly utilized in schema creation)
-    this.manyToOneAdd({
-      referencedTableName: 'dept',
-      columnName: 'dept',
-      displayColumns: [{ columnName: 'name', friendlyName: 'Department Name' }],
-      tabName: 'Users',
-    });
-
     this.addMenuItem({
       label: 'Users',
       parent: 'Admin',
