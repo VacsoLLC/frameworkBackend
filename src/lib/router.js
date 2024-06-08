@@ -94,12 +94,12 @@ async function handlerFunction(req, res) {
       `Request, ${req?.user?.name}, ${req?.params?.packageName}, ${req?.params?.className}, ${req?.params?.action}, ${req?.params?.recordId}, ${time} ms`
     );
 
-    if (result === null) {
+    if (result === null || result === undefined) {
       return res.status(200);
     }
 
     // FIXME I dont like this
-    if (result.redirect) {
+    if (result?.redirect) {
       return res.redirect(result.redirect);
     }
 
