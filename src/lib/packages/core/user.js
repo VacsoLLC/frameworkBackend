@@ -35,13 +35,6 @@ export default class UserTable extends Table {
       },
     });
 
-    this.columnAdd({
-      columnName: 'age',
-      friendlyName: 'Age',
-      columnType: 'integer',
-      helpText: 'The age of the user',
-    });
-
     this.addMenuItem({
       label: 'Users',
       parent: 'Admin',
@@ -83,7 +76,7 @@ export default class UserTable extends Table {
             length: 20,
           });
         console.log('Admin Password: ', password);
-        return bcrypt.hashSync(password, 10);
+        return password;
       },
     }); //
 

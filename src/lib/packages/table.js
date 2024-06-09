@@ -520,12 +520,16 @@ export default class Table extends Base {
     return this.children;
   }
 
-  async recordCreate({ data, audit = true, req }) {
+  async recordCreate({ data = {}, audit = true, req }) {
     for (const columnName in this.columns) {
       const column = this.columns[columnName];
 
       if (column.onCreate && typeof column.onCreate == 'function') {
         data[columnName] = column.onCreate(data[columnName]);
+      }
+
+      if (column.columnType == 'password' && data[columnName]) {
+        data[columnName] = await this.hashPassword(data[columnName]);
       }
     }
 
