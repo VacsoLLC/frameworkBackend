@@ -668,6 +668,10 @@ export default class Table extends Base {
   }
 
   async recordGet({ recordId, where, returnPasswords = false }) {
+    if (!recordId) {
+      throw new Error('recordId is required to fetch a record.');
+    }
+
     try {
       if (!where) {
         where = { id: recordId };
