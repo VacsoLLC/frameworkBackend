@@ -54,7 +54,7 @@ export default class Saml extends Base {
 
     const saml_response = await this.postAssertWithPromise(req.body, idp);
 
-    const user = await this.packages.core.user.getUser(
+    const user = await this.packages.core.user.getUserLoginAllowed(
       saml_response.user.name_id
     );
 

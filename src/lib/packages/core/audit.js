@@ -82,7 +82,6 @@ export default class Audit extends Table {
       friendlyName: 'Message',
       columnType: 'string',
       helpText: 'The human readable audit message.',
-      fieldType: 'textArea',
     });
 
     this.columnAdd({
@@ -90,7 +89,6 @@ export default class Audit extends Table {
       friendlyName: 'Detail',
       columnType: 'text',
       helpText: 'Contains the JSON passed to the function.',
-      fieldType: 'textArea',
     });
   }
 

@@ -35,6 +35,15 @@ export default class UserTable extends Table {
       },
     });
 
+    this.columnAdd({
+      columnName: 'loginAllowed',
+      friendlyName: 'Login Allowed',
+      columnType: 'boolean',
+      fieldType: 'boolean',
+      defaultValue: true,
+      helpText: 'Is the user allowed to login?',
+    });
+
     this.addMenuItem({
       label: 'Users',
       parent: 'Admin',
@@ -69,6 +78,7 @@ export default class UserTable extends Table {
     this.addRecord({
       name: 'Admin',
       email: 'admin',
+      allowLogin: true,
       password: () => {
         const password =
           process.env.ADMIN_PASSWORD ||
@@ -114,7 +124,9 @@ export default class UserTable extends Table {
   }
 
   async auth(email, password) {
-    const user = await this.get({ where: { email: email.toLowerCase() } });
+    const user = await this.get({
+      where: { email: email.toLowerCase(), loginAllowed: true },
+    });
     if (!user) {
       return false;
     }
@@ -124,6 +136,10 @@ export default class UserTable extends Table {
     }
 
     return user;
+  }
+
+  async getUserLoginAllowed(email) {
+    return this.get({ where: { email, loginAllowed: true } });
   }
 
   async getUser(email) {
@@ -140,6 +156,7 @@ export default class UserTable extends Table {
       data: {
         email,
         name: email,
+        loginAllowed: false,
       },
       req: {
         user: {
@@ -150,6 +167,7 @@ export default class UserTable extends Table {
     });
 
     const newUser = await this.getUser(email);
+
     if (newUser) {
       return newUser;
     } else {

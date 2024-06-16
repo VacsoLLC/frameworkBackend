@@ -11,8 +11,9 @@ const columnTypeConversion = {
   string: 'string',
   password: 'string',
   integer: 'integer',
-  datetime: 'bigint', // TODO make sure this works in sqlite
+  datetime: 'bigint',
   text: 'text',
+  boolean: 'boolean',
 };
 
 // This is the main class for creating tables. It extends the base class.
@@ -238,8 +239,8 @@ export default class Table extends Base {
     tableAlias = this.table,
 
     columnType = 'string', // The column type (string, integer, etc.)
+    fieldType, // defaults to the value of columnType, can be overriden to change the field type in the GUI
     fieldWidth = 50,
-    fieldType = 'text',
     index = false, // index this column?
 
     // Reference fields
@@ -271,6 +272,10 @@ export default class Table extends Base {
     options = [],
   }) {
     let dbColumnType = columnTypeConversion[columnType];
+
+    if (!fieldType) {
+      fieldType = columnType;
+    }
 
     if (onCreateOrUpdate && (onCreate || onUpdate)) {
       throw new Error(
@@ -667,9 +672,10 @@ export default class Table extends Base {
     return { rowsDeleted: result };
   }
 
+  // returns a single record. If multiple records are found, only the first is returned.
   async recordGet({ recordId, where, returnPasswords = false }) {
-    if (!recordId) {
-      throw new Error('recordId is required to fetch a record.');
+    if (!recordId && !where) {
+      throw new Error('recordId or where is required to fetch a record.');
     }
 
     try {
