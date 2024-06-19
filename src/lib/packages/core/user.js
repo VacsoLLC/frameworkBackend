@@ -78,7 +78,7 @@ export default class UserTable extends Table {
     this.addRecord({
       name: 'Admin',
       email: 'admin',
-      allowLogin: true,
+      loginAllowed: true,
       password: () => {
         const password =
           process.env.ADMIN_PASSWORD ||
