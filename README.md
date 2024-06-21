@@ -20,30 +20,7 @@ frameworkTicketing is alpha level code. It is under active development and shoul
 
 ## Getting Started
 
-To begin using the Vacso Framework for your project, follow these steps:
-
-1. **Clone the Repository**: Start by cloning the Vacso Framework repository to your local machine.
-
-   ```bash
-   git clone https://github.com/vacsollc/framework.git
-   ```
-
-2. **Install Dependencies**: Navigate to the cloned directory and install the necessary dependencies.
-
-   ```bash
-   cd framework
-   npm install
-   ```
-
-3. **Explore the Sample Application**: The "Vacso Framework Ticketing" is a great way to familiarize yourself with the framework. Run the sample application to see it in action.
-
-   ```bash
-   npm start
-   ```
-
-4. **Add Your Data Model and Business Rules**: Once you're comfortable, start integrating your data model and business rules into the framework to develop your custom application.
-
-5. **Customize and Extend**: Use the comprehensive components provided by the framework and customize them as needed. Extend the framework's capabilities to suit your specific requirements.
+TBD.
 
 ## Documentation
 

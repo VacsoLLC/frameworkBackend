@@ -1,5 +1,6 @@
 import express from 'express';
 import Packages from './packages/index.js';
+import readline from 'readline';
 
 let packages;
 let config;
@@ -29,6 +30,71 @@ export default async function router(tempconfig) {
     '/:packageName/:className/:action/:recordId',
     handlerFunction
   );
+
+  const gracefulShutdown = (signal) => {
+    console.log(`Received ${signal}. Shutting down gracefully...`);
+
+    //TODO add shutdown stuff
+
+    process.exit();
+  };
+
+  //process.on('SIGINT', gracefulShutdown);
+
+  console.log('Press "q" to quit.');
+
+  // Handle 'q' key to quit
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  rl.on('line', (input) => {
+    if (input.trim().toLowerCase() === 'q') {
+      rl.close();
+      gracefulShutdown();
+    }
+  });
+
+  // Handle various signals
+  const signals = [
+    'SIGINT',
+    'SIGTERM',
+    'SIGHUP',
+    'SIGUSR1',
+    'SIGUSR2',
+    'SIGBREAK',
+    'SIGABRT',
+    'SIGALRM',
+    'SIGBUS',
+    'SIGCHLD',
+    'SIGCONT',
+    'SIGFPE',
+    'SIGHUP',
+    'SIGILL',
+    'SIGIO',
+    'SIGIOT',
+    'SIGKILL',
+    'SIGPIPE',
+    'SIGPOLL',
+    'SIGPROF',
+    'SIGPWR',
+    'SIGQUIT',
+    'SIGSEGV',
+    'SIGSTKFLT',
+    'SIGSTOP',
+    'SIGTSTP',
+    'SIGTTIN',
+    'SIGTTOU',
+    'SIGURG',
+    'SIGVTALRM',
+    'SIGXCPU',
+    'SIGXFSZ',
+  ];
+
+  signals.forEach((signal) => {
+    process.on(signal, () => gracefulShutdown(signal));
+  });
 
   return routerReturn;
 }
