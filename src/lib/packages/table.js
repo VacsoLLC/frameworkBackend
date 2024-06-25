@@ -466,8 +466,6 @@ export default class Table extends Base {
       }
     }
 
-    query = query.select(selectedColumns);
-
     if (Array.isArray(where)) {
       for (const whereClause of where) {
         if (Array.isArray(whereClause)) {
@@ -487,9 +485,12 @@ export default class Table extends Base {
     let count = null;
     if (returnCount) {
       const countQuery = query.clone().count('* as count');
+
       const result = await this.queryRun(countQuery);
       count = result[0].count;
     }
+
+    query = query.select(selectedColumns);
 
     query = query.orderBy(sortField, sortOrder);
     if (limit) query = query.limit(limit);
