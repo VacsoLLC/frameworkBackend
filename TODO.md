@@ -1,6 +1,10 @@
+- Hello World sample base class
+- Hello World sample table class
+
 - Global Search
 
 - SAML
+
   - Auto create user at login
   - Auto update user at login
   - Auto create groups at login
@@ -9,12 +13,14 @@
   - Force SAML login w/ bypass
 
 - Views
+
   - Add view to menu system
   - Default view that is integrated into view system
 
 - Record locking/Record being added by another user notifications
 
 - Audit trail improvements:
+
   - Related records should should display names in addition to IDs
   - Updated records should show the differences
   - Deleted records should show the record state at deletion
@@ -29,7 +35,6 @@
   - Add random code to outbound emails, validate them on reply
   - Cut off reply email
   - Attachments
-
 
 packages
 classes
