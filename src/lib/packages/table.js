@@ -411,11 +411,22 @@ export default class Table extends Base {
   }
 
   actionAdd(action) {
-    if (!action.hasOwnProperty('showSuccess')) {
-      action.showSuccess = true; // Set 'showSuccess' to true if it doesn't exist
-    }
-    action.id = this.actions.length;
-    this.actions.push(action);
+    const newAction = {
+      // Default Values
+      label: 'No Label Provdied',
+      helpText: '', // Help text displayed as a tool tip when hovering over the button
+      showSuccess: true, // Show a success message after the action is complete
+      actionid: (this.actions.length + 1) * 100, // this allows someone to insert an action between two actions
+      color: 'primary', // Color of the button
+      close: false, // Close the record after the action is complete
+      verify: false, // This is a verification message that pops up before the action is run giving the user an option to cancel. If not provided, action runs immedately.
+      method: false, // The method to run when the action is clicked. If not provided, other options are triggered, but no method is run. This is used for the close button.
+
+      // Override the defaults with the provided values
+      ...action,
+    };
+
+    this.actions.push(newAction);
   }
 
   async columnExists(columnName) {
@@ -434,6 +445,7 @@ export default class Table extends Base {
     returnCount = false,
     columns = [],
     queryModifier = false,
+    queryModifierArgs = {},
   }) {
     let selectedColumns = [];
     let query = this.knex.from(this.dbDotTable);
@@ -479,7 +491,11 @@ export default class Table extends Base {
     }
 
     if (queryModifier && this.queryModifier[queryModifier]) {
-      query = this.queryModifier[queryModifier](query, this.knex);
+      query = this.queryModifier[queryModifier](
+        query,
+        this.knex,
+        queryModifierArgs
+      );
     }
 
     let count = null;
