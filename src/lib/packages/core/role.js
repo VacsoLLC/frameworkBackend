@@ -4,7 +4,7 @@ export default class Role extends Table {
   constructor(args) {
     super({ name: 'Role', className: 'role', ...args });
 
-    this.addRequiredRoles('Admin');
+    this.rolesWriteAdd('Admin');
 
     this.columnAdd({
       columnName: 'name',

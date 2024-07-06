@@ -4,8 +4,7 @@ export default class Group extends Table {
   constructor(args) {
     super({ name: 'Group', className: 'group', ...args });
 
-    this.addRequiredRoles('Admin');
-    this.addRequiredReadRoles('Authenticated');
+    this.rolesWriteAdd('Admin');
 
     this.columnAdd({
       columnName: 'name',

@@ -5,8 +5,8 @@ export default class UserTable extends Table {
   constructor(args) {
     super({ name: 'User', className: 'user', ...args });
 
-    this.addRequiredRoles('Admin');
-    this.addRequiredReadRoles('Authenticated');
+    this.rolesWriteAdd('Admin');
+    //this.rolesReadAdd('Authenticated');
 
     this.columnAdd({
       columnName: 'name',

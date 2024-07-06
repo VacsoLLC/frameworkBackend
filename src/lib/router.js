@@ -96,7 +96,7 @@ async function handlerFunction(req, res) {
     );
 
     if (result === null || result === undefined) {
-      return res.status(200);
+      return res.status(200).json({});
     }
 
     // FIXME I dont like this

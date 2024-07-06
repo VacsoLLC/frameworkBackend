@@ -4,7 +4,7 @@ export default class Admin extends Base {
   constructor(args) {
     super({ className: 'admin', ...args });
 
-    this.addRequiredRoles('Admin');
+    this.rolesWriteAdd('Admin');
 
     this.addMenuItem({
       label: 'Admin',

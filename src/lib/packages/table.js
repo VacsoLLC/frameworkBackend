@@ -38,6 +38,8 @@ export default class Table extends Base {
     this.insertQueueForThisTable = []; // records to add to this table after initialization. Other tables can add records to this queue via thier addRecord method.
     this.initFunctions = []; // functions to run after the table is created
     this.queryModifier = {}; // used to modify queries before they are run
+    this.accessFilters = []; // used to filter records based on user access
+    this.rolesDelete = []; // Default roles required to delete records in this class. The user must have ANY of these roles. This is role names and not IDs. If blank any authenticated user that can write can also delete.
 
     this.name = args[0].name; // Display table name. Displayed at the top of forms and tables.
     this.db = this.packageName;
@@ -61,7 +63,7 @@ export default class Table extends Base {
 
     this.actionAdd({
       label: 'Close',
-      helpText: 'Close Record',
+      helpText: 'Close Page, go to previous page.',
       close: true,
       color: 'secondary',
       showSuccess: false,
@@ -75,6 +77,7 @@ export default class Table extends Base {
         'Are you sure you want to delete this record? This action cannot be undone.',
       close: true,
       color: 'danger',
+      rolesExecute: this.rolesDelete,
     });
 
     this.actionAdd({
@@ -85,7 +88,13 @@ export default class Table extends Base {
       recordGet: true,
       rowsGet: true,
       schemaGet: true,
+      actionsGet: true,
+      childrenGet: true,
     });
+  }
+
+  rolesDeleteAdd(...role) {
+    this.rolesDelete = this.combineArrays(this.rolesDelete, role);
   }
 
   queryModifierAdd(name, callback) {
@@ -270,7 +279,29 @@ export default class Table extends Base {
     readOnly = false, // Field is read only and can not be modified in the gui
 
     options = [],
+
+    rolesRead = null, // Users must have one of these roles to read this column. If blank, the table level permissions apply
+    rolesWrite = null, // Users must have one of these roles to write to this column. If blank, the table level permissions apply
+    rolesCreate = null, // Users must have one of these roles to create this column. If blank, the table level permissions apply. writers can always create.
   }) {
+    if (rolesWrite === null) {
+      rolesWrite = this.rolesWrite;
+    } else {
+      this.rolesWriteAllAdd(...rolesWrite); // If the role isn't already in the master list of roles that can write, add it.
+    }
+
+    if (rolesRead === null) {
+      rolesRead = this.rolesRead;
+    } else {
+      this.rolesReadAllAdd(...rolesRead); // If the role isn't already in the master list of roles that can read, add it.
+    }
+
+    if (rolesCreate === null) {
+      rolesCreate = this.rolesWrite;
+    } else {
+      this.rolesWriteAllAdd(...rolesCreate); // If the role isn't already in the master list of roles that can write, add it.
+    }
+
     let dbColumnType = columnTypeConversion[columnType];
 
     if (!fieldType) {
@@ -341,6 +372,9 @@ export default class Table extends Base {
       readOnly,
       referenceCreate,
       queryModifier,
+      rolesRead,
+      rolesWrite,
+      rolesCreate,
     };
   }
 
@@ -371,6 +405,8 @@ export default class Table extends Base {
         ...columnData,
         columnName: `${columnName}_${columnData.columnName}`,
         actualColumnName: columnData.columnName,
+        rolesRead: args.rolesRead,
+        rolesWrite: args.rolesWrite,
       });
     }
 
@@ -421,10 +457,15 @@ export default class Table extends Base {
       close: false, // Close the record after the action is complete
       verify: false, // This is a verification message that pops up before the action is run giving the user an option to cancel. If not provided, action runs immedately.
       method: false, // The method to run when the action is clicked. If not provided, other options are triggered, but no method is run. This is used for the close button.
-
+      rolesExecute: null, // The user must have one of these roles to execute the action. If blank, all the defualt writers can execute the action.
+      rolesNotExecute: null, // The user must NOT have any of these roles to execute the action. If blank, all the defualt writers can execute the action.
       // Override the defaults with the provided values
       ...action,
     };
+
+    if (newAction.rolesExecute != null) {
+      this.rolesWriteAllAdd(...newAction.rolesExecute);
+    }
 
     this.actions.push(newAction);
   }
@@ -434,6 +475,63 @@ export default class Table extends Base {
     return await this.knex.schema
       //.withSchema(this.db)
       .hasColumn(this.dbDotTable, columnName);
+  }
+
+  selectJoin({ query }) {
+    for (const columnName in this.columns) {
+      const column = this.columns[columnName];
+
+      if (column.join) {
+        query = query.leftJoin(
+          `${column.joinDb}.${column.join} as ${columnName}`,
+          `${this.table}.${columnName}`,
+          '=',
+          `${columnName}.id`
+        );
+      }
+    }
+    return query;
+  }
+
+  selectColumns({
+    columns = [],
+    returnPasswords = false,
+    includeJoins = true,
+    user,
+    query,
+  }) {
+    let selectedColumns = [];
+
+    for (const columnName in this.columns) {
+      if (columns.length > 0 && !columns.includes(columnName)) {
+        continue;
+      }
+
+      const column = this.columns[columnName];
+
+      // Check if the user has permission to read this column
+      if (user && column.rolesRead && column.rolesRead.length > 0) {
+        if (!user.userHasAnyRoleName(...column.rolesRead)) {
+          continue; // Skip this column if user doesn't have permission
+        }
+      }
+
+      if (column.columnType == 'password' && !returnPasswords) {
+        continue;
+      }
+
+      if (includeJoins == false && column.table != this.table) {
+        continue;
+      }
+
+      selectedColumns.push(
+        `${column.tableAlias}.${column.actualColumnName} as ${columnName}`
+      );
+    }
+
+    query.select(selectedColumns);
+
+    return query;
   }
 
   async rowsGet({
@@ -446,38 +544,16 @@ export default class Table extends Base {
     columns = [],
     queryModifier = false,
     queryModifierArgs = {},
+    req,
   }) {
-    let selectedColumns = [];
     let query = this.knex.from(this.dbDotTable);
 
-    for (const columnName in this.columns) {
-      if (columns.length > 0 && !columns.includes(columnName)) {
-        continue;
-      }
-
-      if (this.columns[columnName].columnType == 'password') {
-        // never ever ever read passwords
-        continue;
-      }
-
-      const column = this.columns[columnName];
-
-      selectedColumns.push(
-        `${column.tableAlias}.${column.actualColumnName} as ${columnName}`
-      );
-
-      if (column.join) {
-        query = query.leftJoin(
-          `${column.joinDb}.${column.join} as ${columnName}`,
-          `${this.table}.${columnName}`,
-          //`${column.join} as ${columnName}`,
-          //`${this.table}.${columnName}`,
-          '=',
-          `${columnName}.id`
-        );
-      }
+    // Apply access filters
+    for (const accessFilter of this.accessFilters) {
+      [query] = await accessFilter(req?.user, query); // if you pass just the query variable, the knex promise gets resolved and the query gets executed early. why? I dont know.
     }
 
+    // apply where clauses
     if (Array.isArray(where)) {
       for (const whereClause of where) {
         if (Array.isArray(whereClause)) {
@@ -490,6 +566,7 @@ export default class Table extends Base {
       query = query.where(where);
     }
 
+    // code based filters
     if (queryModifier && this.queryModifier[queryModifier]) {
       query = this.queryModifier[queryModifier](
         query,
@@ -498,21 +575,28 @@ export default class Table extends Base {
       );
     }
 
+    query = this.selectJoin({ query });
+
     let count = null;
+
     if (returnCount) {
+      // get count of rows, if requested
       const countQuery = query.clone().count('* as count');
 
       const result = await this.queryRun(countQuery);
       count = result[0].count;
     }
 
-    query = query.select(selectedColumns);
+    // get columns and joins to select
+    query = this.selectColumns({ columns, user: req?.user, query });
 
+    // apply sorting, limits, and offsets
     query = query.orderBy(sortField, sortOrder);
     if (limit) query = query.limit(limit);
     if (offset) query = query.offset(offset);
 
     const rows = await this.queryRun(query);
+
     return {
       rows,
       count,
@@ -520,56 +604,154 @@ export default class Table extends Base {
   }
 
   async schemaGet({ req: { user } }) {
-    let schema = { ...this.columns };
+    //let schema = { ...this.columns };
+    let schema = {};
+
     for (const columnName in this.columns) {
       const column = this.columns[columnName];
 
+      schema[columnName] = { ...column };
+
       if (column.defaultValue && typeof column.defaultValue == 'function') {
-        schema[columnName].defaultValue = column.defaultValue({ user });
+        schema[columnName].defaultValue = await column.defaultValue({ user });
       }
+
+      // Check if the user has read-only access to this column
+      if (user && column.rolesRead && column.rolesRead.length > 0) {
+        const hasReadAccess = await user.userHasAnyRoleName(
+          ...column.rolesRead
+        );
+        const hasWriteAccess =
+          !column.rolesWrite ||
+          column.rolesWrite.length === 0 ||
+          (await user.userHasAnyRoleName(...column.rolesWrite));
+
+        if (hasReadAccess && !hasWriteAccess) {
+          schema[columnName].readOnly = true;
+        }
+      }
+
+      schema[columnName].createAllowed =
+        (await user.userHasAnyRoleName(...(column.rolesCreate || []))) ||
+        (await user.userHasAnyRoleName(...column.rolesWrite));
     }
+
+    const readOnly = !(await user.userHasAnyRoleName(...this.rolesAllWrite));
+
     return {
       name: this.name,
+      readOnly,
       schema,
     };
   }
 
-  async actionsGet() {
-    return this.actions;
+  async actionsGet({ req }) {
+    let actions = [];
+
+    for (const action of this.actions) {
+      if (
+        action.rolesNotExecute &&
+        (await req.user.userHasAnyRoleName(...action.rolesNotExecute))
+      ) {
+        continue;
+      }
+      if (action.rolesExecute) {
+        if (!(await req.user.userHasAnyRoleName(...action.rolesExecute))) {
+          continue;
+        }
+      } else if (this.rolesWrite.length > 0) {
+        if (!(await req.user.userHasAnyRoleName(...this.rolesWrite))) {
+          continue;
+        }
+      }
+      actions.push(action);
+    }
+
+    return actions;
   }
 
-  async childrenGet() {
-    return this.children;
+  async childrenGet({ req }) {
+    const children = [];
+    for (const child of this.children) {
+      if (
+        await this.packages[child.db][child.table].authorized({
+          req,
+          action: 'rowsGet',
+        })
+      ) {
+        children.push(child);
+      } else {
+        continue;
+      }
+    }
+
+    return children;
   }
 
-  async recordCreate({ data = {}, audit = true, req }) {
+  // Helper method to check if a user can write to a column
+  userCanWriteColumn(user, columnName) {
+    const column = this.columns[columnName];
+    return (
+      !column.rolesWrite ||
+      column.rolesWrite.length === 0 ||
+      user.userHasAnyRoleName(...column.rolesWrite)
+    );
+  }
+
+  async recordCreate({ data, audit = true, req }) {
+    let filteredData = {};
+
     for (const columnName in this.columns) {
       const column = this.columns[columnName];
 
-      if (column.onCreate && typeof column.onCreate == 'function') {
-        data[columnName] = column.onCreate(data[columnName]);
+      if (!data.hasOwnProperty(columnName)) {
+        continue;
       }
 
-      if (column.columnType == 'password' && data[columnName]) {
-        data[columnName] = await this.hashPassword(data[columnName]);
+      // Check write permission
+      if (
+        req &&
+        req.user &&
+        req.user.userHasAnyRoleName &&
+        column.rolesWrite &&
+        column.rolesWrite.length > 0
+      ) {
+        if (!req.user.userHasAnyRoleName(...column.rolesWrite)) {
+          console.log(
+            `User doesn't have permission to write to column: ${columnName}`
+          );
+          continue; // Skip this column if user doesn't have permission
+        }
+      }
+
+      if (column.onCreate && typeof column.onCreate == 'function') {
+        filteredData[columnName] = column.onCreate(filteredData[columnName]);
+      } else {
+        filteredData[columnName] = data[columnName];
+      }
+
+      if (column.columnType == 'password' && filteredData[columnName]) {
+        filteredData[columnName] = await this.hashPassword(
+          filteredData[columnName]
+        );
       }
     }
 
     for (const callback of this.onCreate) {
-      data = await callback.call(this, data, req);
+      filteredData = await callback.call(this, filteredData, req);
     }
 
     await this.emit('recordCreate.before', {
-      data,
+      data: filteredData,
       req,
     });
 
     try {
-      const query = this.knex.from(this.dbDotTable).insert(data); //.returning('id');
+      const query = this.knex.from(this.dbDotTable).insert(filteredData); //.returning('id');
       const [recordId] = await this.queryRun(query);
       console.log(`Record created with ID ${recordId} in ${this.table}`);
 
-      data.id = recordId;
+      filteredData.id = recordId;
 
       if (audit) {
         await this.audit({
@@ -582,7 +764,7 @@ export default class Table extends Base {
 
       await this.emit('recordCreate.after', {
         recordId,
-        data,
+        data: filteredData,
         req,
       });
 
@@ -594,15 +776,42 @@ export default class Table extends Base {
   }
 
   async recordUpdate({ recordId, data, req }) {
-    for (const columnName in this.columns) {
+    const newData = {};
+
+    for (const columnName in data) {
+      const columnSettings = this.columns[columnName];
+
+      if (!columnSettings) {
+        console.log('WARNING! Column not found:', columnName);
+        continue;
+      }
+
+      if (columnSettings.table != this.table) {
+        continue;
+      }
+
       if (!data.hasOwnProperty(columnName)) {
         continue;
       }
 
-      const columnSettings = this.columns[columnName];
+      // Check write permission
+      if (columnSettings.rolesWrite && columnSettings.rolesWrite.length > 0) {
+        if (
+          req &&
+          req.user &&
+          req.user.userHasAnyRoleName &&
+          !req.user.userHasAnyRoleName(...columnSettings.rolesWrite)
+        ) {
+          console.log(
+            `User doesn't have permission to update column: ${columnName}`
+          );
+          continue; // Skip this column if user doesn't have permission
+        }
+      }
 
       if (columnSettings.columnType == 'password' && data && data[columnName]) {
-        data[columnName] = await this.hashPassword(data[columnName]);
+        newData[columnName] = await this.hashPassword(data[columnName]);
+        continue;
       }
 
       if (
@@ -611,6 +820,8 @@ export default class Table extends Base {
       ) {
         data[columnName] = columnSettings.onUpdate(data[columnName]);
       }
+
+      newData[columnName] = data[columnName];
     }
 
     for (const callback of this.onUpdate) {
@@ -619,21 +830,21 @@ export default class Table extends Base {
 
     await this.emit('recordUpdate.before', {
       recordId,
-      data,
+      newData,
       req,
     });
 
     const query = this.knex
       .from(this.dbDotTable)
       .where('id', recordId)
-      .update(data);
+      .update(newData);
     const result = await this.queryRun(query);
 
     for (const columnName in this.columns) {
       const column = this.columns[columnName];
       if (column.columnType == 'password' && data[columnName]) {
         // never expose passwords
-        delete data[columnName];
+        delete newData[columnName];
       }
     }
 
@@ -646,7 +857,7 @@ export default class Table extends Base {
 
     await this.emit('recordUpdate.after', {
       recordId,
-      data,
+      newData,
       req,
     });
 
@@ -690,41 +901,41 @@ export default class Table extends Base {
   }
 
   // returns a single record. If multiple records are found, only the first is returned.
-  async recordGet({ recordId, where, returnPasswords = false }) {
+  async recordGet({ recordId, where, returnPasswords = false, req }) {
     if (!recordId && !where) {
       throw new Error('recordId or where is required to fetch a record.');
     }
 
     try {
       if (!where) {
-        where = { id: recordId };
+        where = { [`${this.dbDotTable}.id`]: recordId };
       }
 
-      let selectedColumns = [];
+      // prepare the query
+      let query = this.knex.from(this.dbDotTable).where(where).first();
 
-      for (const columnName in this.columns) {
-        if (
-          this.columns[columnName].columnType == 'password' &&
-          !returnPasswords
-        ) {
-          // never ever ever read passwords
-          continue;
-        }
+      // Get columns to select
+      query = this.selectColumns({
+        returnPasswords,
+        includeJoins: true,
+        user: req?.user,
+        query,
+      });
 
-        if (this.columns[columnName].table != this.table) {
-          continue;
-        }
-        selectedColumns.push(columnName);
+      // Get joins
+      query = this.selectJoin({ query });
+
+      // add any access filters
+      for (const accessFilter of this.accessFilters) {
+        [query] = await accessFilter(req?.user, query);
       }
-
-      let query = this.knex
-        .from(this.dbDotTable)
-        .select(selectedColumns)
-        .where(where)
-        .first();
 
       // Run the query
       const result = await this.queryRun(query);
+      if (!result) {
+        throw new Error('Record not found');
+      }
+
       return result;
     } catch (err) {
       console.error(`Error fetching record from ${this.table}: ${err}`);
@@ -813,5 +1024,9 @@ export default class Table extends Base {
 
   initAdd(record) {
     this.initFunctions.push(record);
+  }
+
+  async addAccessFilter(filter) {
+    this.accessFilters.push(filter);
   }
 }

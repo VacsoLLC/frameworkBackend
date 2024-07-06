@@ -21,6 +21,13 @@ export default class Menu extends Base {
             continue;
           }
 
+          if (
+            item.rolesHide.length > 0 &&
+            (await req.user.userHasAnyRoleName(...item.rolesHide)) == true
+          ) {
+            continue;
+          }
+
           let outputitem = { ...item };
           if (item.filter && typeof item.filter == 'function') {
             outputitem.filter = item.filter(req);

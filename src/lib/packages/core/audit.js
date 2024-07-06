@@ -13,6 +13,8 @@ export default class Audit extends Table {
       },
     });
 
+    this.rolesWriteAdd('Admin');
+
     this.columnAdd({
       columnName: 'created',
       friendlyName: 'Created',

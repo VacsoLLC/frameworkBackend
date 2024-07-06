@@ -1,8 +1,6 @@
 - Hello World sample base class
 - Hello World sample table class
 
-- Requester login/create ticket
-
 - Global Search
 
 - SAML
@@ -19,7 +17,7 @@
   - Add view to menu system
   - Default view that is integrated into view system
 
-- Record locking/Record being added by another user notifications
+- Record locking/Record being viewed by another user notifications
 
 - Audit trail improvements:
 
@@ -37,7 +35,3 @@
   - Add random code to outbound emails, validate them on reply
   - Cut off reply email
   - Attachments
-
-packages
-classes
-methods
