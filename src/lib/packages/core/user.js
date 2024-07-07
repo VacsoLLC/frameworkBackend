@@ -6,7 +6,16 @@ export default class UserTable extends Table {
     super({ name: 'User', className: 'user', ...args });
 
     this.rolesWriteAdd('Admin');
+    this.rolesDeleteAdd('Admin');
+    this.rolesReadAdd('Admin');
     //this.rolesReadAdd('Authenticated');
+
+    this.addAccessFilter(async (user, query) => {
+      if (user && !(await user.userHasAnyRoleName('Admin'))) {
+        query.where('id', user.id);
+      }
+      return [query];
+    });
 
     this.columnAdd({
       columnName: 'name',
@@ -14,6 +23,7 @@ export default class UserTable extends Table {
       columnType: 'string',
       index: true,
       helpText: 'The full name of the user',
+      rolesRead: ['Authenticated'],
     });
 
     this.columnAdd({
@@ -30,6 +40,7 @@ export default class UserTable extends Table {
       columnType: 'string',
       index: true,
       helpText: 'The email address of the user',
+      rolesRead: ['Authenticated'],
       onCreateOrUpdate: (email) => {
         return email.toLowerCase();
       },
@@ -42,6 +53,8 @@ export default class UserTable extends Table {
       fieldType: 'boolean',
       defaultValue: true,
       helpText: 'Is the user allowed to login?',
+      rolesRead: ['Admin'],
+      rolesWrite: ['Admin'],
     });
 
     this.addMenuItem({
@@ -54,6 +67,7 @@ export default class UserTable extends Table {
     this.actionAdd({
       label: 'Reset Password',
       method: 'resetPassword',
+      rolesExecute: ['Admin', 'Authenticated'],
       verify:
         'Enter a new password in the first field, and confirm it in the second field.',
       inputs: {

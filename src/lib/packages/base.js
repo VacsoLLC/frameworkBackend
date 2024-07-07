@@ -97,7 +97,7 @@ export default class Base {
 
     // If they have a read role, and this is a read only method
     if (
-      this.rolesRead.length > 0 &&
+      this.rolesAllRead.length > 0 &&
       (await req.user.userHasAnyRoleName(...this.rolesAllRead)) &&
       this.readOnlyMethods[action]
     ) {

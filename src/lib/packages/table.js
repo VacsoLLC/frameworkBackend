@@ -603,6 +603,54 @@ export default class Table extends Base {
     };
   }
 
+  async columnGetAccess({ columnName, req }) {
+    const column = this.columns[columnName];
+
+    // If not given a valid user, this is a system request and no auth is required.
+    if (!req || !req.user || !req.user.userHasAnyRoleName)
+      return {
+        hasReadAccess: true,
+        hasWriteAccess: true,
+      };
+
+    // If this column has no write roles, anyone can read or write.
+    if (column.rolesWrite.length == 0)
+      return {
+        hasReadAccess: true,
+        hasWriteAccess: true,
+        hasCreateAccess: true,
+      };
+
+    // If the user has a matching write role, they can read and write.
+    if (await req.user.userHasAnyRoleName(...column.rolesWrite))
+      return {
+        hasReadAccess: true,
+        hasWriteAccess: true,
+        hasCreateAccess: true,
+      };
+
+    // If the user has a matching read role, they can read but not write.
+    if (await req.user.userHasAnyRoleName(...column.rolesRead)) {
+      let hasCreateAccess = false;
+      if (column.rolesCreate && column.rolesCreate.length > 0) {
+        hasCreateAccess = await req.user.userHasAnyRoleName(
+          ...column.rolesCreate
+        );
+      }
+      return {
+        hasReadAccess: true,
+        hasWriteAccess: false,
+        hasCreateAccess,
+      };
+    }
+    // If the user has no matching roles, they can't read or write.
+    return {
+      hasReadAccess: false,
+      hasWriteAccess: false,
+      hasCreateAccess: false,
+    };
+  }
+
   async schemaGet({ req: { user } }) {
     //let schema = { ...this.columns };
     let schema = {};
@@ -610,30 +658,27 @@ export default class Table extends Base {
     for (const columnName in this.columns) {
       const column = this.columns[columnName];
 
-      schema[columnName] = { ...column };
-
+      const temp = { ...column };
       if (column.defaultValue && typeof column.defaultValue == 'function') {
-        schema[columnName].defaultValue = await column.defaultValue({ user });
+        temp.defaultValue = await column.defaultValue({ user });
       }
 
-      // Check if the user has read-only access to this column
-      if (user && column.rolesRead && column.rolesRead.length > 0) {
-        const hasReadAccess = await user.userHasAnyRoleName(
-          ...column.rolesRead
-        );
-        const hasWriteAccess =
-          !column.rolesWrite ||
-          column.rolesWrite.length === 0 ||
-          (await user.userHasAnyRoleName(...column.rolesWrite));
+      const { hasReadAccess, hasWriteAccess, hasCreateAccess } =
+        await this.columnGetAccess({
+          columnName,
+          req: { user },
+        });
 
-        if (hasReadAccess && !hasWriteAccess) {
-          schema[columnName].readOnly = true;
-        }
+      // skip this column if user has no access
+      if (!hasReadAccess && !hasWriteAccess) continue;
+
+      if (hasReadAccess && !hasWriteAccess) {
+        temp.readOnly = true;
       }
 
-      schema[columnName].createAllowed =
-        (await user.userHasAnyRoleName(...(column.rolesCreate || []))) ||
-        (await user.userHasAnyRoleName(...column.rolesWrite));
+      temp.createAllowed = hasCreateAccess;
+
+      schema[columnName] = temp;
     }
 
     const readOnly = !(await user.userHasAnyRoleName(...this.rolesAllWrite));
@@ -655,7 +700,8 @@ export default class Table extends Base {
       ) {
         continue;
       }
-      if (action.rolesExecute) {
+
+      if (action.rolesExecute && action.rolesExecute.length > 0) {
         if (!(await req.user.userHasAnyRoleName(...action.rolesExecute))) {
           continue;
         }
@@ -709,19 +755,16 @@ export default class Table extends Base {
       }
 
       // Check write permission
-      if (
-        req &&
-        req.user &&
-        req.user.userHasAnyRoleName &&
-        column.rolesWrite &&
-        column.rolesWrite.length > 0
-      ) {
-        if (!req.user.userHasAnyRoleName(...column.rolesWrite)) {
-          console.log(
-            `User doesn't have permission to write to column: ${columnName}`
-          );
-          continue; // Skip this column if user doesn't have permission
-        }
+      const { hasCreateAccess } = await this.columnGetAccess({
+        columnName,
+        req,
+      });
+
+      if (!hasCreateAccess) {
+        console.log(
+          `User doesn't have permission to write to column: ${columnName}`
+        );
+        continue; // Skip this column if user doesn't have permission
       }
 
       if (column.onCreate && typeof column.onCreate == 'function') {
@@ -795,18 +838,14 @@ export default class Table extends Base {
       }
 
       // Check write permission
-      if (columnSettings.rolesWrite && columnSettings.rolesWrite.length > 0) {
-        if (
-          req &&
-          req.user &&
-          req.user.userHasAnyRoleName &&
-          !req.user.userHasAnyRoleName(...columnSettings.rolesWrite)
-        ) {
-          console.log(
-            `User doesn't have permission to update column: ${columnName}`
-          );
-          continue; // Skip this column if user doesn't have permission
-        }
+      const { hasWriteAccess } = await this.columnGetAccess({
+        columnName,
+        req,
+      });
+
+      if (!hasWriteAccess) {
+        console.log('User does not have write access to column:', columnName);
+        continue; // Skip this column if user doesn't have permission
       }
 
       if (columnSettings.columnType == 'password' && data && data[columnName]) {
