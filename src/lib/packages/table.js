@@ -611,6 +611,7 @@ export default class Table extends Base {
       return {
         hasReadAccess: true,
         hasWriteAccess: true,
+        hasCreateAccess: true,
       };
 
     // If this column has no write roles, anyone can read or write.
@@ -768,7 +769,7 @@ export default class Table extends Base {
       }
 
       if (column.onCreate && typeof column.onCreate == 'function') {
-        filteredData[columnName] = column.onCreate(filteredData[columnName]);
+        filteredData[columnName] = column.onCreate(data[columnName]);
       } else {
         filteredData[columnName] = data[columnName];
       }

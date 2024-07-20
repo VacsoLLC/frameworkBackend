@@ -42,7 +42,7 @@ export default class UserTable extends Table {
       helpText: 'The email address of the user',
       rolesRead: ['Authenticated'],
       onCreateOrUpdate: (email) => {
-        return email.toLowerCase();
+        return email?.toLowerCase();
       },
     });
 
@@ -90,7 +90,7 @@ export default class UserTable extends Table {
 
     // this is a default record that will get added after the table is created
     this.addRecord({
-      name: 'Admin',
+      name: 'admin',
       email: 'admin',
       loginAllowed: true,
       password: () => {
