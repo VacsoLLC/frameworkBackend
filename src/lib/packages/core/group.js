@@ -12,6 +12,7 @@ export default class Group extends Table {
       columnType: 'string',
       index: true,
       helpText: 'Group Name',
+      rolesRead: ['Authenticated'],
     });
 
     this.manyToManyAdd({

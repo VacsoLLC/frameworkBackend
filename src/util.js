@@ -3,6 +3,22 @@ import { fileURLToPath, pathToFileURL } from 'url';
 import { readdir } from 'fs/promises';
 import { join, basename, resolve } from 'path';
 
+export function systemUser(req) {
+  // Create a new instance of the same class
+  const newReq = Object.create(Object.getPrototypeOf(req));
+
+  // Copy all enumerable properties
+  Object.assign(newReq, req);
+
+  // Override the user property
+  newReq.user = {
+    id: 1,
+    name: 'System',
+  };
+
+  return newReq;
+}
+
 export async function loadFromDir(dir) {
   const modules = {};
   try {

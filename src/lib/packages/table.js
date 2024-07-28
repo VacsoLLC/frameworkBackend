@@ -341,6 +341,7 @@ export default class Table extends Base {
     }
 
     this.columns[columnName] = {
+      columnName,
       friendlyName,
       friendlyColumnName,
       columnType,
@@ -660,9 +661,6 @@ export default class Table extends Base {
       const column = this.columns[columnName];
 
       const temp = { ...column };
-      if (column.defaultValue && typeof column.defaultValue == 'function') {
-        temp.defaultValue = await column.defaultValue({ user });
-      }
 
       const { hasReadAccess, hasWriteAccess, hasCreateAccess } =
         await this.columnGetAccess({
@@ -679,6 +677,11 @@ export default class Table extends Base {
 
       temp.createAllowed = hasCreateAccess;
 
+      const defaultValue = await this.columnGetDefaultValue(column, user);
+      if (defaultValue) {
+        temp.defaultValue = defaultValue;
+      }
+
       schema[columnName] = temp;
     }
 
@@ -689,6 +692,14 @@ export default class Table extends Base {
       readOnly,
       schema,
     };
+  }
+
+  async columnGetDefaultValue(column, user) {
+    if (column.defaultValue && typeof column.defaultValue === 'function') {
+      return await column.defaultValue({ user });
+    } else if (column.defaultValue) {
+      return column.defaultValue;
+    }
   }
 
   async actionsGet({ req }) {
@@ -751,27 +762,28 @@ export default class Table extends Base {
     for (const columnName in this.columns) {
       const column = this.columns[columnName];
 
-      if (!data.hasOwnProperty(columnName)) {
-        continue;
-      }
-
       // Check write permission
       const { hasCreateAccess } = await this.columnGetAccess({
         columnName,
         req,
       });
 
-      if (!hasCreateAccess) {
-        console.log(
-          `User doesn't have permission to write to column: ${columnName}`
-        );
-        continue; // Skip this column if user doesn't have permission
+      if (hasCreateAccess && data.hasOwnProperty(columnName)) {
+        // if the user has permission to write to the column, use the value they provided
+        filteredData[columnName] = data[columnName];
       }
 
+      // if the column was not supplied by the user, but there is a default value, use that.
+      if (!filteredData[columnName]) {
+        const temp = await this.columnGetDefaultValue(column, req?.user);
+        if (temp) {
+          filteredData[columnName] = temp;
+        }
+      }
+
+      // Run the onCreate function for this column
       if (column.onCreate && typeof column.onCreate == 'function') {
-        filteredData[columnName] = column.onCreate(data[columnName]);
-      } else {
-        filteredData[columnName] = data[columnName];
+        filteredData[columnName] = column.onCreate(filteredData[columnName]);
       }
 
       if (column.columnType == 'password' && filteredData[columnName]) {

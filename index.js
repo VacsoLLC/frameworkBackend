@@ -1,6 +1,7 @@
 import Backend from './src/server.js';
 import Table from './src/lib/packages/table.js';
-import { loadFromDir } from './src/util.js';
+import { loadFromDir, systemUser } from './src/util.js';
+
 
 export default Backend;
-export { Table, loadFromDir };
+export { Table, loadFromDir, systemUser };

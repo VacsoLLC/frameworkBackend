@@ -88,7 +88,19 @@ export default class Comment extends Table {
     });
   }
 
-  async createComment({ req, db, table, recordId, comment, type = 'Private' }) {
+  async createComment({
+    req,
+    db,
+    table,
+    recordId,
+    comment,
+    author,
+    type = 'Private',
+  }) {
+    if (!author) {
+      author = req.user.id;
+    }
+
     return await this.recordCreate({
       req,
       data: {
@@ -96,7 +108,7 @@ export default class Comment extends Table {
         table,
         row: recordId,
         body: comment,
-        author: req.user.id,
+        author,
         type,
       },
     });
