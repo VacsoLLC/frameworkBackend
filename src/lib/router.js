@@ -169,6 +169,7 @@ class Req {
     this.body = req.body;
     this.params = req.params;
     this.user = req.user;
+    this.securityId = req.user?.securityId || null;
 
     if (req.params.recordId) {
       req.record = {
@@ -180,11 +181,14 @@ class Req {
   }
 
   message({
-    severity = 'info',
-    summary = null,
-    detail = 'This is a message.',
-    life = 3000,
+    severity = 'info', // effects the color of the toast message. Can be 'info', 'warn', 'error', 'success'
+    summary = null, // title of the toast message. optional. If not provided, it will default to the severity
+    detail = null, // body of the toast message. Required.
+    life = 3000, // how long the toast message will be displayed in milliseconds
   }) {
+    if (!detail) {
+      throw new Error('Detail is required for a message.');
+    }
     if (!summary) {
       switch (severity) {
         case 'info':

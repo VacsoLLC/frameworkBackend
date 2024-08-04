@@ -1,9 +1,18 @@
 import { fileURLToPath, pathToFileURL } from 'url';
-
+import User from './lib/packages/core/login/user.js';
 import { readdir } from 'fs/promises';
 import { join, basename, resolve } from 'path';
 
-export function systemUser(req) {
+export function systemUser(that) {
+  return new User({
+    id: 1,
+    name: 'System',
+    roles: [1, 2],
+    packages: that.packages,
+  });
+}
+
+export function elevateUser(req) {
   // Create a new instance of the same class
   const newReq = Object.create(Object.getPrototypeOf(req));
 
@@ -11,10 +20,7 @@ export function systemUser(req) {
   Object.assign(newReq, req);
 
   // Override the user property
-  newReq.user = {
-    id: 1,
-    name: 'System',
-  };
+  newReq.securityId = 1;
 
   return newReq;
 }

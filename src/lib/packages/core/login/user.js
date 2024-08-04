@@ -15,9 +15,10 @@ export default class User {
       return false;
     }
 
+    const that = this;
     const roleIDs = await Promise.all(
       roles.map(async (role) => {
-        return await this.packages.core.role.roleNameToID(role);
+        return await that.packages.core.role.roleNameToID(role);
       })
     );
 

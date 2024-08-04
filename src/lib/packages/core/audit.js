@@ -1,4 +1,5 @@
 import Table from '../table.js';
+import { systemUser } from '../../../util.js';
 
 export default class Audit extends Table {
   constructor(args) {
@@ -107,6 +108,7 @@ export default class Audit extends Table {
         action: args.req.action || 'Unknown',
       },
       audit: false,
+      req: systemUser(this),
     });
   }
 }

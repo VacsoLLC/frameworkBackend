@@ -607,6 +607,15 @@ export default class Table extends Base {
   async columnGetAccess({ columnName, req }) {
     const column = this.columns[columnName];
 
+    if (req.securityId == 1) {
+      // The system user can do anything
+      return {
+        hasReadAccess: true,
+        hasWriteAccess: true,
+        hasCreateAccess: true,
+      };
+    }
+
     // If not given a valid user, this is a system request and no auth is required.
     if (!req || !req.user || !req.user.userHasAnyRoleName)
       return {
@@ -984,9 +993,11 @@ export default class Table extends Base {
 
       // Run the query
       const result = await this.queryRun(query);
-      if (!result) {
-        throw new Error('Record not found');
-      }
+
+      // if not found, will return null... should we throw? probably not.
+      //if (!result) {
+      //  throw new Error('Record not found');
+      //}
 
       return result;
     } catch (err) {
