@@ -1,3 +1,9 @@
+- Actions should pass references to methods
+- the frontend should call actions, not methods
+- every method exposed should be explicitly exposed
+- validations should happen automatically
+
+
 - Hello World sample base class
 - Hello World sample table class
 

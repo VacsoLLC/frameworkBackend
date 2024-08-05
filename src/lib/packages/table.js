@@ -33,7 +33,7 @@ export default class Table extends Base {
     this.manyToMany = [];
     this.onCreate = [];
     this.onUpdate = [];
-    this.actions = [];
+    this.actions = {};
     this.addRecords = []; // used to add records after the table is created, if they dont already exist. These can be records in other tables
     this.insertQueueForThisTable = []; // records to add to this table after initialization. Other tables can add records to this queue via thier addRecord method.
     this.initFunctions = []; // functions to run after the table is created
@@ -450,25 +450,30 @@ export default class Table extends Base {
   actionAdd(action) {
     const newAction = {
       // Default Values
-      label: 'No Label Provdied',
+      label: 'No Label Provided',
       helpText: '', // Help text displayed as a tool tip when hovering over the button
       showSuccess: true, // Show a success message after the action is complete
-      actionid: (this.actions.length + 1) * 100, // this allows someone to insert an action between two actions
+      actionid: Object.keys(this.actions).length * 100 + 100, // this allows someone to insert an action between two actions
       color: 'primary', // Color of the button
       close: false, // Close the record after the action is complete
-      verify: false, // This is a verification message that pops up before the action is run giving the user an option to cancel. If not provided, action runs immedately.
+      verify: false, // This is a verification message that pops up before the action is run giving the user an option to cancel. If not provided, action runs immediately.
       method: false, // The method to run when the action is clicked. If not provided, other options are triggered, but no method is run. This is used for the close button.
-      rolesExecute: null, // The user must have one of these roles to execute the action. If blank, all the defualt writers can execute the action.
-      rolesNotExecute: null, // The user must NOT have any of these roles to execute the action. If blank, all the defualt writers can execute the action.
+      rolesExecute: null, // The user must have one of these roles to execute the action. If blank, all the default writers can execute the action.
+      rolesNotExecute: null, // The user must NOT have any of these roles to execute the action. If blank, all the default writers can execute the action.
       // Override the defaults with the provided values
       ...action,
     };
+
+    const id = action.id || newAction.label;
+    if (this.actions[id]) {
+      throw new Error(`Duplicate action key: ${id}`);
+    }
 
     if (newAction.rolesExecute != null) {
       this.rolesWriteAllAdd(...newAction.rolesExecute);
     }
 
-    this.actions.push(newAction);
+    this.actions[id] = newAction;
   }
 
   async columnExists(columnName) {
@@ -712,9 +717,9 @@ export default class Table extends Base {
   }
 
   async actionsGet({ req }) {
-    let actions = [];
+    let filteredActions = {};
 
-    for (const action of this.actions) {
+    for (const [key, action] of Object.entries(this.actions)) {
       if (
         action.rolesNotExecute &&
         (await req.user.userHasAnyRoleName(...action.rolesNotExecute))
@@ -731,10 +736,10 @@ export default class Table extends Base {
           continue;
         }
       }
-      actions.push(action);
+      filteredActions[key] = action;
     }
 
-    return actions;
+    return filteredActions;
   }
 
   async childrenGet({ req }) {
