@@ -1,7 +1,7 @@
 import { fileURLToPath, pathToFileURL } from 'url';
 import User from './lib/packages/core/login/user.js';
 import { readdir } from 'fs/promises';
-import { join, basename, resolve } from 'path';
+import { join, basename, resolve, extname } from 'path';
 
 export function systemUser(that) {
   return new User({
@@ -33,7 +33,11 @@ export async function loadFromDir(dir) {
 
     // Process each file
     for (const file of files) {
-      if (file.endsWith('.js')) {
+      if (
+        file.endsWith('.js') ||
+        file.endsWith('.mjs') ||
+        file.endsWith('.cjs')
+      ) {
         try {
           // Compute the full path to the file
           const filePath = join(dir, file);
@@ -47,8 +51,11 @@ export async function loadFromDir(dir) {
           // Dynamically import the file
           const module = await import(fileURL.href);
 
-          // Get the filename without the .js extension
-          const moduleName = basename(file, '.js');
+          // Get the extension of the file
+          const ext = extname(file);
+
+          // Get the filename without the extension
+          const moduleName = basename(file, ext);
 
           // Assign the imported module (default or named exports) to the modules object
           modules[moduleName] = module.default || module;
