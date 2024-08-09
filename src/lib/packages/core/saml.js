@@ -33,6 +33,8 @@ export default class Saml extends Base {
         this.configs[key].idp_options
       );
     }
+    this.methodAdd('list', this.list);
+    this.methodAdd('acs', this.acs);
   }
 
   async list(req, res) {

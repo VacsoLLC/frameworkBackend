@@ -37,8 +37,7 @@ export default async function router(tempconfig) {
 async function handlerFunction(req, res) {
   if (
     !packages[req.params.packageName] ||
-    !packages[req.params.packageName][req.params.className] ||
-    !packages[req.params.packageName][req.params.className][req.params.action]
+    !packages[req.params.packageName][req.params.className]
   ) {
     return res.status(404).json({ message: 'Not Found' });
   }
@@ -79,41 +78,47 @@ async function handlerFunction(req, res) {
   // Make sure the properties are unique between the body and query params
   validateProperties(req.body, req.query);
 
-  try {
-    const result = await packages[req.params.packageName][req.params.className][
-      req.params.action
-    ]({
-      ...req.body,
-      ...req.query,
-      recordId: req.params.recordId,
-      req: reqObject,
-    });
+  if (packages[req.params.packageName]?.[req.params.className]) {
+    try {
+      //TODOs:
+      // deal with if the method is not found. throw a custom error maybe?
+      // make validations work
 
-    const time = Date.now() - reqObject.date;
+      const result = await packages[req.params.packageName][
+        req.params.className
+      ].methodExecute(req, req.params.action, {
+        ...req.body,
+        ...req.query,
+        recordId: req.params.recordId,
+        req: reqObject,
+      });
 
-    console.log(
-      `Request, ${req?.user?.name}, ${req?.params?.packageName}, ${req?.params?.className}, ${req?.params?.action}, ${req?.params?.recordId}, ${time} ms`
-    );
+      const time = Date.now() - reqObject.date;
 
-    if (result === null || result === undefined) {
-      return res.status(200).json({});
+      console.log(
+        `Request, ${req?.user?.name}, ${req?.params?.packageName}, ${req?.params?.className}, ${req?.params?.action}, ${req?.params?.recordId}, ${time} ms`
+      );
+
+      if (result === null || result === undefined) {
+        return res.status(200).json({});
+      }
+
+      // FIXME I dont like this
+      if (result?.redirect) {
+        return res.redirect(result.redirect);
+      }
+
+      return res.status(200).json({
+        data: result,
+        messages: reqObject.messages,
+      });
+    } catch (error) {
+      console.error(error);
+
+      return res
+        .status(500)
+        .json({ message: 'Server Error', error: error.message });
     }
-
-    // FIXME I dont like this
-    if (result?.redirect) {
-      return res.redirect(result.redirect);
-    }
-
-    return res.status(200).json({
-      data: result,
-      messages: reqObject.messages,
-    });
-  } catch (error) {
-    console.error(error);
-
-    return res
-      .status(500)
-      .json({ message: 'Server Error', error: error.message });
   }
 }
 

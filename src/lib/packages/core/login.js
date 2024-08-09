@@ -6,6 +6,7 @@ export default class Login extends Base {
   constructor(args) {
     super({ className: 'login', ...args });
     this.authenticationRequired = false;
+    this.methodAdd('getToken', this.getToken);
   }
 
   // TODO: add rate limiting to this function and authenticateUser to prevent brute force attacks

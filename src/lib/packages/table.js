@@ -63,6 +63,7 @@ export default class Table extends Base {
 
     this.actionAdd({
       label: 'Close',
+      method: this.noOp,
       helpText: 'Close Page, go to previous page.',
       close: true,
       color: 'secondary',
@@ -82,6 +83,7 @@ export default class Table extends Base {
 
     this.actionAdd({
       newLine: true,
+      method: this.noOp, // FIXME: this is a workaround to the method registration process. fix this.
     });
 
     this.readOnlyMethodsAdd({
@@ -91,6 +93,15 @@ export default class Table extends Base {
       actionsGet: true,
       childrenGet: true,
     });
+
+    this.methodAdd('recordGet', this.recordGet);
+    this.methodAdd('recordCreate', this.recordCreate);
+    this.methodAdd('recordUpdate', this.recordUpdate);
+    this.methodAdd('recordDelete', this.recordDelete);
+    this.methodAdd('rowsGet', this.rowsGet);
+    this.methodAdd('schemaGet', this.schemaGet);
+    this.methodAdd('actionsGet', this.actionsGet);
+    this.methodAdd('childrenGet', this.childrenGet);
   }
 
   rolesDeleteAdd(...role) {
@@ -283,6 +294,9 @@ export default class Table extends Base {
     rolesRead = null, // Users must have one of these roles to read this column. If blank, the table level permissions apply
     rolesWrite = null, // Users must have one of these roles to write to this column. If blank, the table level permissions apply
     rolesCreate = null, // Users must have one of these roles to create this column. If blank, the table level permissions apply. writers can always create.
+
+    required = false, // Field is required
+    validations = [], // Array of functions to validate the field
   }) {
     if (rolesWrite === null) {
       rolesWrite = this.rolesWrite;
@@ -376,6 +390,8 @@ export default class Table extends Base {
       rolesRead,
       rolesWrite,
       rolesCreate,
+      required,
+      validations,
     };
   }
 
@@ -464,9 +480,25 @@ export default class Table extends Base {
       ...action,
     };
 
-    const id = action.id || newAction.label;
+    const id = 'action' + (action.id || newAction.label.replace(/\s+/g, ''));
+
+    newAction.id = id;
+
     if (this.actions[id]) {
-      throw new Error(`Duplicate action key: ${id}`);
+      throw new Error(
+        `Duplicate action key: ${id}. Each method must have a unqiue label or id field.`
+      );
+    }
+
+    // if method is a function, add it to the class. if its a string, add its function to the class
+    if (typeof newAction.method == 'string' && this[newAction.method]) {
+      this.methodAdd(id, this[newAction.method], this.actionValidate);
+    } else if (typeof newAction.method == 'function') {
+      this.methodAdd(id, newAction.method, this.actionValidate);
+    } else {
+      throw new Error(
+        `Invalid method type. Method must be a name of a method on this class or a function. ID: ${id} Label: ${newAction.label}`
+      );
     }
 
     if (newAction.rolesExecute != null) {
@@ -474,6 +506,39 @@ export default class Table extends Base {
     }
 
     this.actions[id] = newAction;
+  }
+
+  async actionValidate({ req, id, args }) {
+    if (!this.actions[id]) {
+      throw new Error(`Invalid method or action. ID: ${id}`);
+    }
+
+    if (!this.actions[id].inputs) return; // If there are no inputs, there is nothing to validate
+
+    const errors = [];
+
+    for (const input in this.actions[id].inputs) {
+      if (this.actions[id].inputs[input].required && !args[input]) {
+        errors.push(`The ${input} field is required.`);
+      }
+      if (
+        this.actions[id].inputs[input].validations &&
+        Array.isArray(this.actions[id].inputs[input].validations)
+      ) {
+        for (const validate of this.actions[id].inputs[input].validations) {
+          const result = validate.call(this, { req, id, args });
+          if (result) {
+            errors.push(result);
+          }
+        }
+      }
+    }
+
+    if (errors.length > 0) {
+      return errors;
+    } else {
+      return;
+    }
   }
 
   async columnExists(columnName) {
@@ -773,6 +838,8 @@ export default class Table extends Base {
   async recordCreate({ data, audit = true, req }) {
     let filteredData = {};
 
+    const errors = [];
+
     for (const columnName in this.columns) {
       const column = this.columns[columnName];
 
@@ -805,6 +872,27 @@ export default class Table extends Base {
           filteredData[columnName]
         );
       }
+
+      if (column.required && !filteredData[columnName]) {
+        errors.push(`Field ${column.friendlyName} is required.`);
+      }
+
+      if (column.validations && column.validations.length > 0) {
+        for (const validate of column.validations) {
+          const result = validate.call(this, {
+            columnName,
+            args: filteredData,
+            req,
+          });
+          if (result) {
+            errors.push(result);
+          }
+        }
+      }
+    }
+
+    if (errors.length > 0) {
+      throw new Error(errors.join(' '));
     }
 
     for (const callback of this.onCreate) {

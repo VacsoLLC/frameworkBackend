@@ -13,12 +13,72 @@ export default class Base {
     this.menuItems = [];
     this.readOnlyMethods = {}; // Methods that are read only. The user must have any of the rolesRead to execute these methods.
     this.authenticationRequired = true; // If false, the user does not need to be authenticated to access this class.
+    this.methods = {}; // This is a list of all the methods in this class that are accessible via the API. use methodAdd to add a method.
+
+    this.methodAdd('methodList', this.methodList);
   }
 
   // This is called after all packages and classes have been initialized.
   // Overload it to do any async setup and/or interact with other objects.
   async init() {
     return;
+  }
+
+  noOp() {
+    return;
+  }
+
+  methodAdd(id, method, validationFunction = null, overwrite = false) {
+    if (!id) {
+      throw new Error('Method id is required.');
+    }
+
+    if (!method || typeof method !== 'function') {
+      throw new Error('Method is required.');
+    }
+
+    if (this.methods[id] && overwrite === false) {
+      throw new Error(
+        `Method id ${id} was being overwritten. If you want to overwrite, set the overwrite flag to true.`
+      );
+    }
+
+    this.methods[id] = {
+      method,
+      validationFunction,
+    };
+  }
+
+
+  async methodValidate({ req, id, args }) {
+    if (this.methods[id].validationFunction) {
+      const errors = await this.methods[id].validationFunction.call(this, {
+        req,
+        id,
+        args,
+      });
+      if (errors) {
+        return errors;
+      }
+    }
+  }
+
+  async methodExecute(req, id, args) {
+    if (!this.methods[id]) {
+      return null;
+    }
+
+    const errors = await this.methodValidate({ req, id, args });
+
+    if (errors) {
+      throw new Error(errors.join(' '));
+    }
+
+    return await this.methods[id].method.call(this, { req, ...args });
+  }
+
+  methodList(req, id, args) {
+    return this.methods;
   }
 
   getMenuItems() {

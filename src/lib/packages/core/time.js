@@ -103,8 +103,8 @@ export default class Time extends Table {
     return `${hours}:${minutes}:${seconds}`;
   }
 
-  createEntry({ seconds, db, table, recordId, req }) {
-    return this.recordCreate({
+  async createEntry({ seconds, db, table, recordId, req }) {
+    return await this.recordCreate({
       req,
       data: {
         db,

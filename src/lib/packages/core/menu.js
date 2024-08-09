@@ -3,6 +3,7 @@ import Base from '../base.js';
 export default class Menu extends Base {
   constructor(args) {
     super({ className: 'menu', ...args });
+    this.methodAdd('getAllMenuItems', this.getAllMenuItems);
   }
 
   async extractMenuItems(req, res) {
