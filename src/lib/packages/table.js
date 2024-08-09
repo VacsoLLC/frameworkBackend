@@ -476,6 +476,7 @@ export default class Table extends Base {
       method: false, // The method to run when the action is clicked. If not provided, other options are triggered, but no method is run. This is used for the close button.
       rolesExecute: null, // The user must have one of these roles to execute the action. If blank, all the default writers can execute the action.
       rolesNotExecute: null, // The user must NOT have any of these roles to execute the action. If blank, all the default writers can execute the action.
+      disabled: null, // A function that return a string to disable the button. If the string is empty, the button is enabled. If the string is not empty, the button is disabled and the string is displayed as a tooltip.
       // Override the defaults with the provided values
       ...action,
     };
@@ -781,8 +782,10 @@ export default class Table extends Base {
     }
   }
 
-  async actionsGet({ req }) {
+  async actionsGet({ id, req }) {
     let filteredActions = {};
+
+    const record = await this.recordGet({ recordId: id, req });
 
     for (const [key, action] of Object.entries(this.actions)) {
       if (
@@ -801,7 +804,18 @@ export default class Table extends Base {
           continue;
         }
       }
-      filteredActions[key] = action;
+
+      const newAction = { ...action };
+
+      if (action.disabled) {
+        const result = await action.disabled.call(this, { record, req });
+        if (result) {
+          newAction.disabled = result;
+        } else {
+          delete newAction.disabled;
+        }
+      }
+      filteredActions[key] = newAction;
     }
 
     return filteredActions;
