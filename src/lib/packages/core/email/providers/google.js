@@ -113,8 +113,7 @@ export default class Google extends EmailProvider {
     console.log('Sending email', args);
 
     if (!this.config.email) {
-      console.log('No email address configured for this provider');
-      return;
+      throw new Error('No email address configured for this email provider');
     }
 
     const message = createMimeMessage();
