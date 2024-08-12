@@ -12,6 +12,17 @@ export function systemUser(that) {
   });
 }
 
+export function systemRequest(that) {
+  return {
+    securityId: 1,
+    user: systemUser(that),
+    message: (...args) => {
+      console.log('message', ...args);
+    },
+    action: 'System',
+  };
+}
+
 export function elevateUser(req) {
   // Create a new instance of the same class
   const newReq = Object.create(Object.getPrototypeOf(req));
