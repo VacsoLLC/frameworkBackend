@@ -37,7 +37,8 @@ export default async function router(tempconfig) {
 async function handlerFunction(req, res) {
   if (
     !packages[req.params.packageName] ||
-    !packages[req.params.packageName][req.params.className]
+    !packages[req.params.packageName][req.params.className] ||
+    !packages[req.params.packageName][req.params.className].methodExecute // methodExecute is provided by the Base class. Everything should have it.
   ) {
     return res.status(404).json({ message: 'Not Found' });
   }
@@ -80,10 +81,6 @@ async function handlerFunction(req, res) {
 
   if (packages[req.params.packageName]?.[req.params.className]) {
     try {
-      //TODOs:
-      // deal with if the method is not found. throw a custom error maybe?
-      // make validations work
-
       const result = await packages[req.params.packageName][
         req.params.className
       ].methodExecute(req, req.params.action, {
@@ -99,8 +96,8 @@ async function handlerFunction(req, res) {
         `Request, ${req?.user?.name}, ${req?.params?.packageName}, ${req?.params?.className}, ${req?.params?.action}, ${req?.params?.recordId}, ${time} ms`
       );
 
-      if (result === null || result === undefined) {
-        return res.status(200).json({});
+      if (!result) {
+        return res.status(404).json({ message: 'Not Found' });
       }
 
       // FIXME I dont like this

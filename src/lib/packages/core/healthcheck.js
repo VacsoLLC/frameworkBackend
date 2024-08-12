@@ -4,6 +4,8 @@ export default class Healthcheck extends Base {
   constructor(args) {
     super({ className: 'healthcheck', ...args });
     this.authenticationRequired = false;
+
+    this.methodAdd('status', this.status);
   }
 
   async status() {
