@@ -61,8 +61,8 @@ export default class Comment extends Table {
       ],
       hiddenCreate: true,
       tabName: 'Comments',
-      defaultValue: ({ user }) => {
-        return user.id;
+      defaultValue: ({ req }) => {
+        return req.user.id;
       },
     });
 

@@ -56,7 +56,8 @@ export default class Table extends Base {
 
     this.actionAdd({
       label: 'Close',
-      method: this.noOp,
+      id: 'actionClose',
+      method: null,
       helpText: 'Close Page, go to previous page.',
       close: true,
       color: 'secondary',
@@ -515,24 +516,23 @@ export default class Table extends Base {
 
       const temp = { ...column };
 
-      const { hasReadAccess, hasWriteAccess, hasCreateAccess } =
-        await column.getAccess({
-          req,
-        });
-
       // skip this column if user has no access
-      if (!hasReadAccess && !hasWriteAccess) continue;
+      if (
+        !(await column.hasReadAccess({ req })) &&
+        !(await column.hasWriteAccess({ req }))
+      )
+        continue;
 
-      if (hasReadAccess && !hasWriteAccess) {
+      if (
+        (await column.hasReadAccess({ req })) &&
+        !(await column.hasWriteAccess({ req }))
+      ) {
         temp.readOnly = true;
       }
 
-      temp.createAllowed = hasCreateAccess;
+      temp.createAllowed = await column.hasCreateAccess({ req });
 
-      const defaultValue = await column.getDefaultValue({ req });
-      if (defaultValue) {
-        temp.defaultValue = defaultValue;
-      }
+      temp.defaultValue = (await column?.getDefaultValue({ req })) ?? undefined;
 
       schema[columnName] = temp;
     }
@@ -560,7 +560,7 @@ export default class Table extends Base {
 
       const newAction = { ...action.toJSON() };
 
-      newAction.disabled = await action.disabledCheck(this, record, req);
+      newAction.disabled = await action.disabledCheck(record, req);
 
       filteredActions[key] = newAction;
     }
@@ -586,16 +586,6 @@ export default class Table extends Base {
     return children;
   }
 
-  // Helper method to check if a user can write to a column
-  userCanWriteColumn(user, columnName) {
-    const column = this.columns[columnName];
-    return (
-      !column.rolesWrite ||
-      column.rolesWrite.length === 0 ||
-      user.userHasAnyRoleName(...column.rolesWrite)
-    );
-  }
-
   async recordCreate({ data, audit = true, req }) {
     let filteredData = {};
 
@@ -609,7 +599,11 @@ export default class Table extends Base {
         req,
       });
 
-      if (hasCreateAccess && data.hasOwnProperty(columnName)) {
+      if (
+        hasCreateAccess &&
+        data.hasOwnProperty(columnName) &&
+        data[columnName]
+      ) {
         // if the user has permission to write to the column, use the value they provided
         filteredData[columnName] = data[columnName];
       }
@@ -649,6 +643,8 @@ export default class Table extends Base {
           }
         }
       }
+
+ 
     }
 
     if (errors.length > 0) {

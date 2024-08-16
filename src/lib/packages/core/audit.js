@@ -66,9 +66,8 @@ export default class Audit extends Table {
       ],
       hiddenCreate: true,
       tabName: 'Audit Created By',
-      defaultValue: ({ user }) => {
-        console.log(user);
-        return user.id;
+      defaultValue: ({ req }) => {
+        return req.user.id;
       },
     });
 

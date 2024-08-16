@@ -1,7 +1,5 @@
-- Actions should pass references to methods
-- the frontend should call actions, not methods
-- every method exposed should be explicitly exposed
-- validations should happen automatically
+- update, update & close should be hidden if the user can't update the record.
+
 
 
 - Hello World sample base class

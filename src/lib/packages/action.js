@@ -10,11 +10,12 @@ export default class Action {
       color: 'primary', // Color of the button
       close: false, // Close the record after the action is complete
       verify: false, // This is a verification message that pops up before the action is run giving the user an option to cancel. If not provided, action runs immediately.
-      method: false, // The method to run when the action is clicked. If not provided, other options are triggered, but no method is run. This is used for the close button.
+      method: null, // The method to run when the action is clicked. If not provided, other options are triggered, but no method is run. This is used for the close button.
       rolesExecute: null, // The user must have one of these roles to execute the action. If blank, all the default writers can execute the action.
       rolesNotExecute: null, // The user must NOT have any of these roles to execute the action. If blank, all the default writers can execute the action.
       disabled: null, // A function that return a string to disable the button. If the string is empty, the button is enabled. If the string is not empty, the button is disabled and the string is displayed as a tooltip.
       thisTable: null,
+      noOp: false,
       // Override the defaults with the provided values
       ...action,
     };
@@ -35,9 +36,11 @@ export default class Action {
         newAction.method,
         action.thisTable.actionValidate
       );
+    } else if (newAction.method === null) {
+      newAction.noOp = true;
     } else {
       throw new Error(
-        `Invalid method type. Method must be a name of a method on the table's class or a function. ID: ${id} Label: ${newAction.label}`
+        `Invalid method type. Method must be a name of a method on the table's class or a function. Label: ${newAction.label}`
       );
     }
 
@@ -72,9 +75,9 @@ export default class Action {
     return true;
   }
 
-  async disabledCheck(that, record, req) {
+  async disabledCheck(record, req) {
     if (this.disabled) {
-      const result = await this.disabled.call(that, { record, req });
+      const result = await this.disabled.call(this.thisTable, { record, req });
       if (result) {
         return result;
       } else {

@@ -65,8 +65,8 @@ export default class Time extends Table {
       ],
       hiddenCreate: true,
       tabName: 'Time',
-      defaultValue: ({ user }) => {
-        return user.id;
+      defaultValue: ({ req }) => {
+        return req.user.id;
       },
     });
 

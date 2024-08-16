@@ -148,14 +148,50 @@ export default class Column {
     this.validations = validations;
   }
 
-  async getDefaultValue({req}) {
+  async getDefaultValue({ req }) {
     if (this.defaultValue && typeof this.defaultValue === 'function') {
-      return await this.defaultValue({ user: req });
+      return await this.defaultValue({ req });
     } else if (this.defaultValue) {
       return this.defaultValue;
     }
   }
 
+  async hasReadAccess({ req }) {
+    if (req.securityId == 1) return true; // System user can always read
+    if (!req || !req.user || !req.user.userHasAnyRoleName) return true; // System request, no auth required
+    if (this.rolesWrite.length == 0) return true; // No write roles, anyone can read
+    if (await req.user.userHasAnyRoleName(...this.rolesWrite)) return true; // User has write access
+    if (await req.user.userHasAnyRoleName(...this.rolesRead)) return true; // User has read access
+    return false; // User has no matching roles
+  }
+
+  async hasWriteAccess({ req }) {
+    if (req.securityId == 1) return true; // System user can always write
+    if (!req || !req.user || !req.user.userHasAnyRoleName) return true; // System request, no auth required
+    if (this.rolesWrite.length == 0) return true; // No write roles, anyone can write
+    if (await req.user.userHasAnyRoleName(...this.rolesWrite)) return true; // User has write access
+    return false; // User does not have write access
+  }
+
+  async hasCreateAccess({ req }) {
+    if (req.securityId == 1) return true; // System user can always create
+    if (!req || !req.user || !req.user.userHasAnyRoleName) return true; // System request, no auth required
+    if (this.rolesWrite.length == 0) return true; // No write roles, anyone can create
+    if (await req.user.userHasAnyRoleName(...this.rolesWrite)) return true; // User has write access
+    if (this.rolesCreate && this.rolesCreate.length > 0) {
+      return await req.user.userHasAnyRoleName(...this.rolesCreate); // Check specific create roles
+    }
+    return false; // User does not have create access
+  }
+
+  async getAccess({ req }) {
+    return {
+      hasReadAccess: await this.hasReadAccess({ req }),
+      hasWriteAccess: await this.hasWriteAccess({ req }),
+      hasCreateAccess: await this.hasCreateAccess({ req }),
+    };
+  }
+  /*
   async getAccess({ req }) {
     if (req.securityId == 1) {
       // The system user can do anything
@@ -212,4 +248,5 @@ export default class Column {
       hasCreateAccess: false,
     };
   }
+    */
 }
