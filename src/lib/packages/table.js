@@ -2,19 +2,12 @@ import knex from 'knex';
 import bcrypt from 'bcrypt';
 import Base from './base.js';
 
+import Column from './column.js';
+import Action from './action.js';
+
 let knexInstance = null;
 const knexConnected = {};
 //const knexInstances = {};
-
-// Keys are our column types, values are the knex column types
-const columnTypeConversion = {
-  string: 'string',
-  password: 'string',
-  integer: 'integer',
-  datetime: 'bigint',
-  text: 'text',
-  boolean: 'boolean',
-};
 
 // This is the main class for creating tables. It extends the base class.
 // For database based classes:
@@ -251,148 +244,19 @@ export default class Table extends Base {
     this.children.push(args);
   }
 
-  async columnAdd({
-    columnName, // The ID of the column in the code
-    actualColumnName = null, // the actual column name in the table, used for joins
-    table = this.table, // the table this column is from
-    db = this.db, // the database this column is from // TODO actually use this value
-    tableAlias = this.table,
-
-    columnType = 'string', // The column type (string, integer, etc.)
-    fieldType, // defaults to the value of columnType, can be overriden to change the field type in the GUI
-    fieldWidth = 50,
-    index = false, // index this column?
-
-    // Reference fields
-    join = false, // if this is a foreign key, what table does it join to?
-    joinDb = false, // if this is a foreign key, what db does it join to?
-    referenceCreate = false, // If true, shows a create button next to the reference field
-    queryModifier = false, // Can be used to modify the query for references before it is run. Useful for filtering in fancy ways.
-
-    display = true, // display this in the gui
-    friendlyName, // The display of the column in the GUI
-    friendlyColumnName = actualColumnName, // The ID to use to display friendly names from the joined table
-    helpText = '', // help text for the column to be displayed in the GUI
-    primaryKey = false, // is this a primaryKey?
-    order = 10000, // the order of the column in the table. The default value is 10,000. The primaryKey defaults to 5000.
-
-    hidden = false, // hide awlays
-    hiddenList = false,
-    hiddenRecord = false, // hide on create or update
-    hiddenCreate = false,
-    hiddenUpdate = false,
-    defaultValue,
-    onCreate = false,
-    onUpdate = false,
-    onCreateOrUpdate = false,
-    listStyle = null,
-
-    readOnly = false, // Field is read only and can not be modified in the gui
-
-    options = [],
-
-    rolesRead = null, // Users must have one of these roles to read this column. If blank, the table level permissions apply
-    rolesWrite = null, // Users must have one of these roles to write to this column. If blank, the table level permissions apply
-    rolesCreate = null, // Users must have one of these roles to create this column. If blank, the table level permissions apply. writers can always create.
-
-    required = false, // Field is required
-    validations = [], // Array of functions to validate the field
-  }) {
-    if (rolesWrite === null) {
-      rolesWrite = this.rolesWrite;
-    } else {
-      this.rolesWriteAllAdd(...rolesWrite); // If the role isn't already in the master list of roles that can write, add it.
-    }
-
-    if (rolesRead === null) {
-      rolesRead = this.rolesRead;
-    } else {
-      this.rolesReadAllAdd(...rolesRead); // If the role isn't already in the master list of roles that can read, add it.
-    }
-
-    if (rolesCreate === null) {
-      rolesCreate = this.rolesWrite;
-    } else {
-      this.rolesWriteAllAdd(...rolesCreate); // If the role isn't already in the master list of roles that can write, add it.
-    }
-
-    let dbColumnType = columnTypeConversion[columnType];
-
-    if (!fieldType) {
-      fieldType = columnType;
-    }
-
-    if (onCreateOrUpdate && (onCreate || onUpdate)) {
-      throw new Error(
-        `Cannot have onCreateOrUpdate and onCreate or onUpdate at the same time.`
-      );
-    }
-
-    if (onCreateOrUpdate) {
-      onCreate = onCreateOrUpdate;
-      onUpdate = onCreateOrUpdate;
-    }
-
-    if (!dbColumnType) {
-      console.error(
-        `Unknown column type '${columnType}'. Defaulting to string.`
-      );
-      dbColumnType = columnTypeConversion['string'];
-      columnType = 'string';
-    }
-
-    if (this.columns[columnName]) {
-      console.error(`Column ${columnName} already exists!`);
+  async columnAdd(args) {
+    if (this.columns[args.columnName]) {
+      console.error(`Column ${args.columnName} already exists!`);
       return;
     }
 
-    if (!friendlyName) {
-      friendlyName = columnName;
-    }
+    args.table = args.table || this.table;
+    args.db = args.db || this.table;
+    args.thisTable = this;
 
-    if (!actualColumnName) {
-      actualColumnName = columnName;
-    }
+    const column = new Column(args);
 
-    this.columns[columnName] = {
-      columnName,
-      friendlyName,
-      friendlyColumnName,
-      columnType,
-      dbColumnType,
-      index,
-      helpText,
-      table,
-      tableAlias,
-      db,
-      display,
-      join,
-      joinDb,
-      actualColumnName,
-      primaryKey,
-      order,
-      hidden,
-      hiddenList,
-      hiddenRecord,
-      hiddenCreate,
-      hiddenUpdate,
-      defaultValue,
-      fieldWidth,
-      fieldType,
-      onCreate,
-      onUpdate,
-      onCreateOrUpdate,
-      listStyle,
-      options,
-      readOnly,
-      referenceCreate,
-      queryModifier,
-      rolesRead,
-      rolesWrite,
-      rolesCreate,
-      required,
-      validations,
-    };
+    this.columns[column.columnName] = column;
   }
 
   async manyToManyAdd(args) {
@@ -464,47 +328,15 @@ export default class Table extends Base {
   }
 
   actionAdd(action) {
-    const newAction = {
-      // Default Values
-      label: 'No Label Provided',
-      helpText: '', // Help text displayed as a tool tip when hovering over the button
-      showSuccess: true, // Show a success message after the action is complete
-      actionid: Object.keys(this.actions).length * 100 + 100, // this allows someone to insert an action between two actions
-      color: 'primary', // Color of the button
-      close: false, // Close the record after the action is complete
-      verify: false, // This is a verification message that pops up before the action is run giving the user an option to cancel. If not provided, action runs immediately.
-      method: false, // The method to run when the action is clicked. If not provided, other options are triggered, but no method is run. This is used for the close button.
-      rolesExecute: null, // The user must have one of these roles to execute the action. If blank, all the default writers can execute the action.
-      rolesNotExecute: null, // The user must NOT have any of these roles to execute the action. If blank, all the default writers can execute the action.
-      disabled: null, // A function that return a string to disable the button. If the string is empty, the button is enabled. If the string is not empty, the button is disabled and the string is displayed as a tooltip.
-      // Override the defaults with the provided values
-      ...action,
-    };
-
-    const id = 'action' + (action.id || newAction.label.replace(/\s+/g, ''));
-
-    newAction.id = id;
+    const id = 'action' + (action.id || action?.label?.replace(/\s+/g, ''));
 
     if (this.actions[id]) {
       throw new Error(
-        `Duplicate action key: ${id}. Each method must have a unqiue label or id field.`
+        `Duplicate action key: ${id}. Each method must have a unqiue label (after spaces have been removed) or id field.`
       );
     }
 
-    // if method is a function, add it to the class. if its a string, add its function to the class
-    if (typeof newAction.method == 'string' && this[newAction.method]) {
-      this.methodAdd(id, this[newAction.method], this.actionValidate);
-    } else if (typeof newAction.method == 'function') {
-      this.methodAdd(id, newAction.method, this.actionValidate);
-    } else {
-      throw new Error(
-        `Invalid method type. Method must be a name of a method on this class or a function. ID: ${id} Label: ${newAction.label}`
-      );
-    }
-
-    if (newAction.rolesExecute != null) {
-      this.rolesWriteAllAdd(...newAction.rolesExecute);
-    }
+    const newAction = new Action({ ...action, id, thisTable: this });
 
     this.actions[id] = newAction;
   }
@@ -675,66 +507,7 @@ export default class Table extends Base {
     };
   }
 
-  async columnGetAccess({ columnName, req }) {
-    const column = this.columns[columnName];
-
-    if (req.securityId == 1) {
-      // The system user can do anything
-      return {
-        hasReadAccess: true,
-        hasWriteAccess: true,
-        hasCreateAccess: true,
-      };
-    }
-
-    // If not given a valid user, this is a system request and no auth is required.
-    if (!req || !req.user || !req.user.userHasAnyRoleName)
-      return {
-        hasReadAccess: true,
-        hasWriteAccess: true,
-        hasCreateAccess: true,
-      };
-
-    // If this column has no write roles, anyone can read or write.
-    if (column.rolesWrite.length == 0)
-      return {
-        hasReadAccess: true,
-        hasWriteAccess: true,
-        hasCreateAccess: true,
-      };
-
-    // If the user has a matching write role, they can read and write.
-    if (await req.user.userHasAnyRoleName(...column.rolesWrite))
-      return {
-        hasReadAccess: true,
-        hasWriteAccess: true,
-        hasCreateAccess: true,
-      };
-
-    // If the user has a matching read role, they can read but not write.
-    if (await req.user.userHasAnyRoleName(...column.rolesRead)) {
-      let hasCreateAccess = false;
-      if (column.rolesCreate && column.rolesCreate.length > 0) {
-        hasCreateAccess = await req.user.userHasAnyRoleName(
-          ...column.rolesCreate
-        );
-      }
-      return {
-        hasReadAccess: true,
-        hasWriteAccess: false,
-        hasCreateAccess,
-      };
-    }
-    // If the user has no matching roles, they can't read or write.
-    return {
-      hasReadAccess: false,
-      hasWriteAccess: false,
-      hasCreateAccess: false,
-    };
-  }
-
-  async schemaGet({ req: { user } }) {
-    //let schema = { ...this.columns };
+  async schemaGet({ req }) {
     let schema = {};
 
     for (const columnName in this.columns) {
@@ -743,9 +516,8 @@ export default class Table extends Base {
       const temp = { ...column };
 
       const { hasReadAccess, hasWriteAccess, hasCreateAccess } =
-        await this.columnGetAccess({
-          columnName,
-          req: { user },
+        await column.getAccess({
+          req,
         });
 
       // skip this column if user has no access
@@ -757,7 +529,7 @@ export default class Table extends Base {
 
       temp.createAllowed = hasCreateAccess;
 
-      const defaultValue = await this.columnGetDefaultValue(column, user);
+      const defaultValue = await column.getDefaultValue({ req });
       if (defaultValue) {
         temp.defaultValue = defaultValue;
       }
@@ -765,7 +537,9 @@ export default class Table extends Base {
       schema[columnName] = temp;
     }
 
-    const readOnly = !(await user.userHasAnyRoleName(...this.rolesAllWrite));
+    const readOnly = !(await req.user.userHasAnyRoleName(
+      ...this.rolesAllWrite
+    ));
 
     return {
       name: this.name,
@@ -774,47 +548,20 @@ export default class Table extends Base {
     };
   }
 
-  async columnGetDefaultValue(column, user) {
-    if (column.defaultValue && typeof column.defaultValue === 'function') {
-      return await column.defaultValue({ user });
-    } else if (column.defaultValue) {
-      return column.defaultValue;
-    }
-  }
-
   async actionsGet({ id, req }) {
     let filteredActions = {};
 
     const record = await this.recordGet({ recordId: id, req });
 
     for (const [key, action] of Object.entries(this.actions)) {
-      if (
-        action.rolesNotExecute &&
-        (await req.user.userHasAnyRoleName(...action.rolesNotExecute))
-      ) {
+      if (!(await action.haveAccess(req))) {
         continue;
       }
 
-      if (action.rolesExecute && action.rolesExecute.length > 0) {
-        if (!(await req.user.userHasAnyRoleName(...action.rolesExecute))) {
-          continue;
-        }
-      } else if (this.rolesWrite.length > 0) {
-        if (!(await req.user.userHasAnyRoleName(...this.rolesWrite))) {
-          continue;
-        }
-      }
+      const newAction = { ...action.toJSON() };
 
-      const newAction = { ...action };
+      newAction.disabled = await action.disabledCheck(this, record, req);
 
-      if (action.disabled) {
-        const result = await action.disabled.call(this, { record, req });
-        if (result) {
-          newAction.disabled = result;
-        } else {
-          delete newAction.disabled;
-        }
-      }
       filteredActions[key] = newAction;
     }
 
@@ -858,8 +605,7 @@ export default class Table extends Base {
       const column = this.columns[columnName];
 
       // Check write permission
-      const { hasCreateAccess } = await this.columnGetAccess({
-        columnName,
+      const { hasCreateAccess } = await column.getAccess({
         req,
       });
 
@@ -870,7 +616,7 @@ export default class Table extends Base {
 
       // if the column was not supplied by the user, but there is a default value, use that.
       if (!filteredData[columnName]) {
-        const temp = await this.columnGetDefaultValue(column, req?.user);
+        const temp = await column.getDefaultValue({ req });
         if (temp) {
           filteredData[columnName] = temp;
         }
@@ -967,8 +713,7 @@ export default class Table extends Base {
       }
 
       // Check write permission
-      const { hasWriteAccess } = await this.columnGetAccess({
-        columnName,
+      const { hasWriteAccess } = await columnSettings.getAccess({
         req,
       });
 

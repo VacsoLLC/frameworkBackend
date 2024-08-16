@@ -1,0 +1,215 @@
+// Keys are our column types, values are the knex column types
+const columnTypeConversion = {
+  string: 'string',
+  password: 'string',
+  integer: 'integer',
+  datetime: 'bigint',
+  text: 'text',
+  boolean: 'boolean',
+};
+
+export default class Column {
+  constructor({
+    thisTable, // the table object this column is from
+    columnName, // The ID of the column in the code
+    actualColumnName = null, // the actual column name in the table, used for joins
+    table, //= this.table, // the table this column is from
+    db, //= this.db, // the database this column is from // TODO actually use this value
+    tableAlias = null, // the alias of the table this column is from
+    columnType = 'string', // The column type (string, integer, etc.)
+    fieldType, // defaults to the value of columnType, can be overriden to change the field type in the GUI
+    fieldWidth = 50,
+    index = false, // index this column?
+
+    // Reference fields
+    join = false, // if this is a foreign key, what table does it join to?
+    joinDb = false, // if this is a foreign key, what db does it join to?
+    referenceCreate = false, // If true, shows a create button next to the reference field
+    queryModifier = false, // Can be used to modify the query for references before it is run. Useful for filtering in fancy ways.
+
+    display = true, // display this in the gui
+    friendlyName, // The display of the column in the GUI
+    friendlyColumnName = actualColumnName, // The ID to use to display friendly names from the joined table
+    helpText = '', // help text for the column to be displayed in the GUI
+    primaryKey = false, // is this a primaryKey?
+    order = 10000, // the order of the column in the table. The default value is 10,000. The primaryKey defaults to 5000.
+
+    hidden = false, // hide awlays
+    hiddenList = false,
+    hiddenRecord = false, // hide on create or update
+    hiddenCreate = false,
+    hiddenUpdate = false,
+    defaultValue,
+    onCreate = false,
+    onUpdate = false,
+    onCreateOrUpdate = false,
+    listStyle = null,
+
+    readOnly = false, // Field is read only and can not be modified in the gui
+
+    options = [],
+
+    rolesRead = null, // Users must have one of these roles to read this column. If blank, the table level permissions apply
+    rolesWrite = null, // Users must have one of these roles to write to this column. If blank, the table level permissions apply
+    rolesCreate = null, // Users must have one of these roles to create this column. If blank, the table level permissions apply. writers can always create.
+
+    required = false, // Field is required
+    validations = [], // Array of functions to validate the field
+  }) {
+    if (!tableAlias) tableAlias = thisTable.table;
+
+    if (rolesWrite === null) {
+      rolesWrite = thisTable.rolesWrite;
+    } else {
+      thisTable.rolesWriteAllAdd(...rolesWrite); // If the role isn't already in the master list of roles that can write, add it.
+    }
+
+    if (rolesRead === null) {
+      rolesRead = thisTable.rolesRead;
+    } else {
+      thisTable.rolesReadAllAdd(...rolesRead); // If the role isn't already in the master list of roles that can read, add it.
+    }
+
+    if (rolesCreate === null) {
+      rolesCreate = thisTable.rolesWrite;
+    } else {
+      thisTable.rolesWriteAllAdd(...rolesCreate); // If the role isn't already in the master list of roles that can write, add it.
+    }
+
+    let dbColumnType = columnTypeConversion[columnType];
+
+    if (!fieldType) {
+      fieldType = columnType;
+    }
+
+    if (onCreateOrUpdate && (onCreate || onUpdate)) {
+      throw new Error(
+        `Cannot have onCreateOrUpdate and onCreate or onUpdate at the same time.`
+      );
+    }
+
+    if (onCreateOrUpdate) {
+      onCreate = onCreateOrUpdate;
+      onUpdate = onCreateOrUpdate;
+    }
+
+    if (!dbColumnType) {
+      console.error(
+        `Unknown column type '${columnType}'. Defaulting to string.`
+      );
+      dbColumnType = columnTypeConversion['string'];
+      columnType = 'string';
+    }
+
+    if (!friendlyName) {
+      friendlyName = columnName;
+    }
+
+    if (!actualColumnName) {
+      actualColumnName = columnName;
+    }
+
+    this.columnName = columnName;
+    this.friendlyName = friendlyName;
+    this.friendlyColumnName = friendlyColumnName;
+    this.columnType = columnType;
+    this.dbColumnType = dbColumnType;
+    this.index = index;
+    this.helpText = helpText;
+    this.table = table;
+    this.tableAlias = tableAlias;
+    this.db = db;
+    this.display = display;
+    this.join = join;
+    this.joinDb = joinDb;
+    this.actualColumnName = actualColumnName;
+    this.primaryKey = primaryKey;
+    this.order = order;
+    this.hidden = hidden;
+    this.hiddenList = hiddenList;
+    this.hiddenRecord = hiddenRecord;
+    this.hiddenCreate = hiddenCreate;
+    this.hiddenUpdate = hiddenUpdate;
+    this.defaultValue = defaultValue;
+    this.fieldWidth = fieldWidth;
+    this.fieldType = fieldType;
+    this.onCreate = onCreate;
+    this.onUpdate = onUpdate;
+    this.onCreateOrUpdate = onCreateOrUpdate;
+    this.listStyle = listStyle;
+    this.options = options;
+    this.readOnly = readOnly;
+    this.referenceCreate = referenceCreate;
+    this.queryModifier = queryModifier;
+    this.rolesRead = rolesRead;
+    this.rolesWrite = rolesWrite;
+    this.rolesCreate = rolesCreate;
+    this.required = required;
+    this.validations = validations;
+  }
+
+  async getDefaultValue({req}) {
+    if (this.defaultValue && typeof this.defaultValue === 'function') {
+      return await this.defaultValue({ user: req });
+    } else if (this.defaultValue) {
+      return this.defaultValue;
+    }
+  }
+
+  async getAccess({ req }) {
+    if (req.securityId == 1) {
+      // The system user can do anything
+      return {
+        hasReadAccess: true,
+        hasWriteAccess: true,
+        hasCreateAccess: true,
+      };
+    }
+
+    // If not given a valid user, this is a system request and no auth is required.
+    if (!req || !req.user || !req.user.userHasAnyRoleName)
+      return {
+        hasReadAccess: true,
+        hasWriteAccess: true,
+        hasCreateAccess: true,
+      };
+
+    // If this column has no write roles, anyone can read or write.
+    if (this.rolesWrite.length == 0)
+      return {
+        hasReadAccess: true,
+        hasWriteAccess: true,
+        hasCreateAccess: true,
+      };
+
+    // If the user has a matching write role, they can read and write.
+    if (await req.user.userHasAnyRoleName(...this.rolesWrite))
+      return {
+        hasReadAccess: true,
+        hasWriteAccess: true,
+        hasCreateAccess: true,
+      };
+
+    // If the user has a matching read role, they can read but not write.
+    if (await req.user.userHasAnyRoleName(...this.rolesRead)) {
+      let hasCreateAccess = false;
+      if (this.rolesCreate && this.rolesCreate.length > 0) {
+        hasCreateAccess = await req.user.userHasAnyRoleName(
+          ...this.rolesCreate
+        );
+      }
+      return {
+        hasReadAccess: true,
+        hasWriteAccess: false,
+        hasCreateAccess,
+      };
+    }
+
+    // If the user has no matching roles, they can't read or write.
+    return {
+      hasReadAccess: false,
+      hasWriteAccess: false,
+      hasCreateAccess: false,
+    };
+  }
+}
