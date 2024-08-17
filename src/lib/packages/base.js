@@ -49,10 +49,9 @@ export default class Base {
     };
   }
 
-
   async methodValidate({ req, id, args }) {
     if (this.methods[id].validationFunction) {
-      const errors = await this.methods[id].validationFunction.call(this, {
+      const errors = await this.methods[id].validationFunction({
         req,
         id,
         args,

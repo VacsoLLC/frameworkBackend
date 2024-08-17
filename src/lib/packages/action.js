@@ -28,13 +28,11 @@ export default class Action {
       action.thisTable.methodAdd(
         newAction.id,
         action.thisTable[newAction.method],
-        action.thisTable.actionValidate
+        (args) => this.validate(args)
       );
     } else if (typeof newAction.method == 'function') {
-      action.thisTable.methodAdd(
-        newAction.id,
-        newAction.method,
-        action.thisTable.actionValidate
+      action.thisTable.methodAdd(newAction.id, newAction.method, (args) =>
+        this.validate(args)
       );
     } else if (newAction.method === null) {
       newAction.noOp = true;
@@ -85,6 +83,36 @@ export default class Action {
       }
     } else {
       return null;
+    }
+  }
+
+  async validate({ args }) {
+    if (!this.inputs || this.inputs.length == 0) return; // no inputs, no validations
+
+    const errors = [];
+
+    for (const input in this.inputs) {
+      if (this.inputs[input].required && !args[input]) {
+        errors.push(`The ${input} field is required.`);
+      }
+      if (
+        this.inputs[input].validations &&
+        Array.isArray(this.inputs[input].validations)
+      ) {
+        for (const validate of this.inputs[input].validations) {
+          const result = await validate.call(this.thisTable, {
+            args,
+            value: args[input],
+          });
+          if (result) {
+            errors.push(result);
+          }
+        }
+      }
+    }
+
+    if (errors.length > 0) {
+      throw new Error(errors.join(' '));
     }
   }
 

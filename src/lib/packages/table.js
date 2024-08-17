@@ -247,17 +247,14 @@ export default class Table extends Base {
 
   async columnAdd(args) {
     if (this.columns[args.columnName]) {
-      console.error(`Column ${args.columnName} already exists!`);
-      return;
+      throw new Error(
+        `Column ${args.columnName} already exists in table ${this.table}!`
+      );
     }
 
-    args.table = args.table || this.table;
-    args.db = args.db || this.table;
     args.thisTable = this;
 
-    const column = new Column(args);
-
-    this.columns[column.columnName] = column;
+    const column = (this.columns[args.columnName] = new Column(args));
   }
 
   async manyToManyAdd(args) {
@@ -340,39 +337,6 @@ export default class Table extends Base {
     const newAction = new Action({ ...action, id, thisTable: this });
 
     this.actions[id] = newAction;
-  }
-
-  async actionValidate({ req, id, args }) {
-    if (!this.actions[id]) {
-      throw new Error(`Invalid method or action. ID: ${id}`);
-    }
-
-    if (!this.actions[id].inputs) return; // If there are no inputs, there is nothing to validate
-
-    const errors = [];
-
-    for (const input in this.actions[id].inputs) {
-      if (this.actions[id].inputs[input].required && !args[input]) {
-        errors.push(`The ${input} field is required.`);
-      }
-      if (
-        this.actions[id].inputs[input].validations &&
-        Array.isArray(this.actions[id].inputs[input].validations)
-      ) {
-        for (const validate of this.actions[id].inputs[input].validations) {
-          const result = validate.call(this, { req, id, args });
-          if (result) {
-            errors.push(result);
-          }
-        }
-      }
-    }
-
-    if (errors.length > 0) {
-      return errors;
-    } else {
-      return;
-    }
   }
 
   async columnExists(columnName) {
@@ -627,24 +591,9 @@ export default class Table extends Base {
         );
       }
 
-      if (column.required && !filteredData[columnName]) {
-        errors.push(`Field ${column.friendlyName} is required.`);
-      }
-
-      if (column.validations && column.validations.length > 0) {
-        for (const validate of column.validations) {
-          const result = validate.call(this, {
-            columnName,
-            args: filteredData,
-            req,
-          });
-          if (result) {
-            errors.push(result);
-          }
-        }
-      }
-
- 
+      errors.push(
+        ...(await column.validate({ value: filteredData[columnName], req }))
+      );
     }
 
     if (errors.length > 0) {

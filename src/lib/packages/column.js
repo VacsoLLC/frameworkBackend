@@ -116,9 +116,9 @@ export default class Column {
     this.dbColumnType = dbColumnType;
     this.index = index;
     this.helpText = helpText;
-    this.table = table;
+    this.table = table || thisTable.table;
     this.tableAlias = tableAlias;
-    this.db = db;
+    this.db = db || thisTable.db;
     this.display = display;
     this.join = join;
     this.joinDb = joinDb;
@@ -191,62 +191,23 @@ export default class Column {
       hasCreateAccess: await this.hasCreateAccess({ req }),
     };
   }
-  /*
-  async getAccess({ req }) {
-    if (req.securityId == 1) {
-      // The system user can do anything
-      return {
-        hasReadAccess: true,
-        hasWriteAccess: true,
-        hasCreateAccess: true,
-      };
+
+  async validate({ value, req }) {
+    const errors = [];
+    if (this.required && !value) {
+      errors.push(`Field ${this.friendlyName} is required.`);
     }
-
-    // If not given a valid user, this is a system request and no auth is required.
-    if (!req || !req.user || !req.user.userHasAnyRoleName)
-      return {
-        hasReadAccess: true,
-        hasWriteAccess: true,
-        hasCreateAccess: true,
-      };
-
-    // If this column has no write roles, anyone can read or write.
-    if (this.rolesWrite.length == 0)
-      return {
-        hasReadAccess: true,
-        hasWriteAccess: true,
-        hasCreateAccess: true,
-      };
-
-    // If the user has a matching write role, they can read and write.
-    if (await req.user.userHasAnyRoleName(...this.rolesWrite))
-      return {
-        hasReadAccess: true,
-        hasWriteAccess: true,
-        hasCreateAccess: true,
-      };
-
-    // If the user has a matching read role, they can read but not write.
-    if (await req.user.userHasAnyRoleName(...this.rolesRead)) {
-      let hasCreateAccess = false;
-      if (this.rolesCreate && this.rolesCreate.length > 0) {
-        hasCreateAccess = await req.user.userHasAnyRoleName(
-          ...this.rolesCreate
-        );
+    if (this.validations && this.validations.length > 0) {
+      for (const validate of this.validations) {
+        const result = await validate.call(this.thisTable, {
+          value,
+          req,
+        });
+        if (result) {
+          errors.push(result);
+        }
       }
-      return {
-        hasReadAccess: true,
-        hasWriteAccess: false,
-        hasCreateAccess,
-      };
     }
-
-    // If the user has no matching roles, they can't read or write.
-    return {
-      hasReadAccess: false,
-      hasWriteAccess: false,
-      hasCreateAccess: false,
-    };
+    return errors;
   }
-    */
 }
