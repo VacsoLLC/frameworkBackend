@@ -4,6 +4,8 @@ export default class Search extends Base {
   constructor(args) {
     super({ className: 'search', ...args });
     this.indexName = 'framework';
+    this.host = process.env.MARQO_HOST || '127.0.0.1';
+    this.port = 8882;
     this.methodAdd('search', this.search);
   }
 
@@ -16,7 +18,7 @@ export default class Search extends Base {
   async initIndex() {
     try {
       const response = await fetch(
-        `http://localhost:8882/indexes/${this.indexName}`,
+        `http://${this.host}:${this.port}/indexes/${this.indexName}`,
         {
           method: 'POST',
           headers: {
@@ -38,7 +40,7 @@ export default class Search extends Base {
 
     try {
       const response = await fetch(
-        `http://localhost:8882/indexes/${this.indexName}/search`,
+        `http://${this.host}:${this.port}/indexes/${this.indexName}/search`,
         {
           method: 'POST',
           headers: {
@@ -69,7 +71,7 @@ export default class Search extends Base {
     try {
       if (action === 'delete') {
         const response = await fetch(
-          `http://localhost:8882/indexes/${this.indexName}/documents/${id}`,
+          `http://${this.host}:${this.port}/indexes/${this.indexName}/documents/${id}`,
           {
             method: 'DELETE',
             headers: {
@@ -85,7 +87,7 @@ export default class Search extends Base {
         return await response.json();
       } else {
         const response = await fetch(
-          `http://localhost:8882/indexes/${this.indexName}/documents`,
+          `http://${this.host}:${this.port}/indexes/${this.indexName}/documents`,
           {
             method: 'POST',
             headers: {
