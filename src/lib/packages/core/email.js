@@ -28,6 +28,7 @@ export default class Email extends Base {
       this.mailboxes[mailbox.name] = new EmailProviders[mailbox.type]({
         config: mailbox,
         callBack: this.processEmail.bind(this),
+        noBackgroundTasks: this.config.noBackgroundTasks,
         dbs: this.packages,
       });
     }

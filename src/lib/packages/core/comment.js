@@ -88,6 +88,10 @@ export default class Comment extends Table {
     });
   }
 
+  async objectToSearchText(object) {
+    return object.body;
+  }
+
   async createComment({ req, db, table, recordId, comment, type = 'Private' }) {
     return await this.recordCreate({
       req,

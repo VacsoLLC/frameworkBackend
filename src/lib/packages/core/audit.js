@@ -14,6 +14,9 @@ export default class Audit extends Table {
       },
     });
 
+    // don't index this table
+    this.index = false;
+
     this.rolesWriteAdd('Admin');
 
     this.columnAdd({

@@ -8,8 +8,11 @@ export default class m2m extends Table {
       db: args.m2m.db, // clean up/remove this
       table: args.m2m.table, // clean up/remove this
       name: args.m2m.friendlyName,
+
       ...args,
     });
+
+    this.index = false;
 
     const m2m = args.m2m;
 

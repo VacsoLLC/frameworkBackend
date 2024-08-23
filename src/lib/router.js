@@ -1,21 +1,14 @@
 import express from 'express';
-import Packages from './packages/index.js';
+
 import readline from 'readline';
 
 let packages;
-let config;
 
-export default async function router(tempconfig) {
-  config = tempconfig; // this sucks, fix this
-
-  // Load up all the packages
-  packages = new Packages(config);
-  await packages.init(config);
-
+export default async function router(packages) {
   const routerReturn = express.Router();
 
   // Apply the token middleware
-  routerReturn.use(processToken);
+  routerReturn.use((...args) => processToken(packages, ...args));
 
   routerReturn.get('/hello', async (_req, res) => {
     return res.status(200).json({ message: 'Hello World!' });
@@ -25,16 +18,17 @@ export default async function router(tempconfig) {
     return res.status(200).json({ message: 'Hello World!' });
   });
 
-  routerReturn.all('/:packageName/:className/:action', handlerFunction);
-  routerReturn.all(
-    '/:packageName/:className/:action/:recordId',
-    handlerFunction
+  routerReturn.all('/:packageName/:className/:action', (...args) =>
+    handlerFunction(packages, ...args)
+  );
+  routerReturn.all('/:packageName/:className/:action/:recordId', (...args) =>
+    handlerFunction(packages, ...args)
   );
 
   return routerReturn;
 }
 
-async function handlerFunction(req, res) {
+async function handlerFunction(packages, req, res) {
   if (
     !packages[req.params.packageName] ||
     !packages[req.params.packageName][req.params.className] ||
@@ -119,7 +113,7 @@ async function handlerFunction(req, res) {
   }
 }
 
-function processToken(req, res, next) {
+function processToken(packages, req, res, next) {
   // Get the token from the request header
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN

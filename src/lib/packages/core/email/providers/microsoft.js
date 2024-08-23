@@ -15,7 +15,7 @@ export default class Microsoft extends EmailProvider {
   async init() {
     const result = await this.setupClient();
 
-    if (result) {
+    if (result && !this.noBackgroundTasks) {
       setInterval(() => {
         console.log(`Checking email for ${this.config.name}...`);
         this.checkEmail();

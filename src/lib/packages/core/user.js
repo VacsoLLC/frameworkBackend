@@ -114,6 +114,10 @@ export default class UserTable extends Table {
     }); //
   }
 
+  async objectToSearchText(object) {
+    return `${object.name} ${object.email}`;
+  }
+
   async resetPassword({
     recordId,
     Password,

@@ -38,10 +38,12 @@ export default class Google extends EmailProvider {
       return;
     }
 
-    setInterval(() => {
-      console.log(`Checking email for ${this.config.name}...`);
-      this.checkMessages();
-    }, this.config.checkInterval);
+    if (!this.noBackgroundTasks) {
+      setInterval(() => {
+        console.log(`Checking email for ${this.config.name}...`);
+        this.checkMessages();
+      }, this.config.checkInterval);
+    }
   }
 
   async checkMessages() {

@@ -71,9 +71,9 @@ export default class DB {
         }
 
         for (const addRecord of addRecords) {
-          this[addRecord.packageName][addRecord.className].insertQueueForThisTable.push(
-            addRecord
-          );
+          this[addRecord.packageName][
+            addRecord.className
+          ].insertQueueForThisTable.push(addRecord);
         }
       }
     }

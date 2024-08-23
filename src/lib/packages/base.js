@@ -14,6 +14,7 @@ export default class Base {
     this.readOnlyMethods = {}; // Methods that are read only. The user must have any of the rolesRead to execute these methods.
     this.authenticationRequired = true; // If false, the user does not need to be authenticated to access this class.
     this.methods = {}; // This is a list of all the methods in this class that are accessible via the API. use methodAdd to add a method.
+    this.isTable = false;
 
     this.methodAdd('methodList', this.methodList);
   }

@@ -19,6 +19,8 @@ export default class Table extends Base {
   constructor(...args) {
     super(...args);
 
+    this.isTable = true;
+
     this.knex = null;
     this.columns = {};
     this.parents = [];
@@ -38,6 +40,13 @@ export default class Table extends Base {
     this.db = this.packageName;
     this.table = this.className;
     this.dbDotTable = `${this.packageName}.${this.className}`;
+
+    // by default we index all tables. set index: false if you dont want it indexed.
+    if (!Object.hasOwnProperty(args[0], 'index')) {
+      this.index = true;
+    } else {
+      this.index = args[0].index;
+    }
 
     // TODO: finish buttons: colors, success message (true/false, default true), fix delete, make sure create button works still
 
@@ -631,6 +640,9 @@ export default class Table extends Base {
         req,
       });
 
+      // Update search index
+      await this.updateSearchIndex(recordId, 'create');
+
       return { id: recordId };
     } catch (err) {
       console.error(`Error creating record in ${this.table}: ${err}`);
@@ -719,6 +731,9 @@ export default class Table extends Base {
       req,
     });
 
+    // Update search index
+    await this.updateSearchIndex(recordId, 'update');
+
     return { rowsUpdated: result };
   }
 
@@ -754,6 +769,9 @@ export default class Table extends Base {
       recordId,
       req,
     });
+
+    // Update search index
+    await this.updateSearchIndex(recordId, 'delete');
 
     return { rowsDeleted: result };
   }
@@ -888,5 +906,61 @@ export default class Table extends Base {
 
   async addAccessFilter(filter) {
     this.accessFilters.push(filter);
+  }
+
+  async updateSearchIndex(recordId, action) {
+    if (!this.index) {
+      return;
+    }
+
+    try {
+      const record =
+        action !== 'delete' ? await this.recordGet({ recordId }) : null;
+      const searchText = record ? await this.objectToSearchText(record) : '';
+      await this.packages.core.search.updateIndex({
+        id: `${this.db}.${this.table}.${recordId}`,
+        action,
+        data: {
+          ...record,
+          searchText,
+          searchTableName: this.name,
+          searchTable: this.table,
+          searchDb: this.db,
+          searchRecordId: recordId,
+        },
+      });
+    } catch (error) {
+      console.error('Error updating search index:', error);
+    }
+  }
+
+  objectToSearchText(obj, prefix = '') {
+    let result = '';
+    for (const [key, value] of Object.entries(obj)) {
+      if (typeof value === 'object' && value !== null) {
+        result += this.objectToSearchText(value, `${prefix}${key}: `);
+      } else {
+        result += `${prefix}${key}: ${value}\n`;
+      }
+    }
+    return result;
+  }
+
+  async indexAllRecords() {
+    console.log(`Indexing all records for ${this.db}.${this.table}`);
+    try {
+      const { rows } = await this.rowsGet({ limit: 1000000 }); // Adjust limit as needed
+      for (const record of rows) {
+        await this.updateSearchIndex(record.id, 'create');
+      }
+      console.log(
+        `Finished indexing ${rows.length} records for ${this.db}.${this.table}`
+      );
+    } catch (error) {
+      console.error(
+        `Error indexing records for ${this.db}.${this.table}:`,
+        error
+      );
+    }
   }
 }

@@ -15,6 +15,9 @@ export default class Time extends Table {
 
     this.rolesWriteAdd('Admin');
 
+    // Dont index this table.
+    this.index = false;
+
     this.columnAdd({
       columnName: 'created',
       friendlyName: 'Created',
