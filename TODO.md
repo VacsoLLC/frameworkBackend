@@ -1,11 +1,7 @@
 - update, update & close should be hidden if the user can't update the record.
 
-
-
 - Hello World sample base class
 - Hello World sample table class
-
-- Global Search
 
 - SAML
 
@@ -31,8 +27,6 @@
   - Audit Login & Logout
 
 - Each web request should be a database transaction
-
-- Buttons should have real time active/disabled
 
 - Email:
   - Optionally Reject emails from unknown email addresses or domains
