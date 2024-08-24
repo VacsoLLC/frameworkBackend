@@ -54,12 +54,14 @@ export default class Table extends Base {
       label: 'Update',
       method: 'recordUpdate',
       helpText: 'Update the record and stay here',
+      rolesExecute: this.rolesWrite,
     });
 
     this.actionAdd({
       label: 'Update & Close',
       method: 'recordUpdate',
       helpText: 'Update the record and close',
+      rolesExecute: this.rolesWrite,
       close: true,
     });
 
@@ -510,9 +512,7 @@ export default class Table extends Base {
       schema[columnName] = temp;
     }
 
-    const readOnly = !(await req.user.userHasAnyRoleName(
-      ...this.rolesAllWrite
-    ));
+    const readOnly = !(await req.user.userHasAnyRoleName(...this.rolesWrite));
 
     return {
       name: this.name,
