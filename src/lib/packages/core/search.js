@@ -6,32 +6,60 @@ export default class Search extends Base {
     this.indexName = 'framework';
     this.host = process.env.MARQO_HOST || '127.0.0.1';
     this.port = 8882;
+    this.connected = false;
     this.methodAdd('search', this.search);
   }
 
   async init() {
-    await this.initIndex();
+    this.initIndex();
 
     console.log('Search initialized');
   }
 
+  /**
+   * Initialize the search index with retry mechanism
+   */
   async initIndex() {
-    try {
-      const response = await fetch(
-        `http://${this.host}:${this.port}/indexes/${this.indexName}`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'hf/e5-base-v2',
-          }),
+    const maxRetries = 10;
+    const baseDelay = 60000; // 1 minute
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        const response = await fetch(
+          `http://${this.host}:${this.port}/indexes/${this.indexName}`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'hf/e5-base-v2',
+            }),
+          }
+        );
+
+        if (response.status === 409) {
+          console.log('Search Index already exists');
+          this.connected = true;
+          return;
         }
-      );
-    } catch {
-      console.error('Error initializing index:', error);
-      throw error;
+
+        if (!response.ok) {
+          console.log(`Failed to create index: ${response.statusText}`);
+        }
+
+        this.connected = true;
+        console.log('Search Index created successfully');
+        return;
+      } catch (error) {
+        if (attempt === maxRetries - 1) {
+          throw new Error(
+            `Failed to initialize index after ${maxRetries} attempts: ${error.message}`
+          );
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, baseDelay));
+      }
     }
   }
 
