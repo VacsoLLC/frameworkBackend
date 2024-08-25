@@ -124,6 +124,10 @@ export default class UserTable extends Table {
     'Verify Password': verifyPassword,
     req,
   }) {
+    if (process.env.DEMO_MODE == 'true') {
+      throw new Error('Password resets are disabled in demo mode.');
+    }
+
     if (!Password || !verifyPassword) {
       throw new Error('Password and Verify Password are required.');
     }
