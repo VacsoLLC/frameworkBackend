@@ -1,7 +1,6 @@
 import Base from '../base.js';
 import fs from 'fs/promises';
 
-
 export default class DataImporter extends Base {
   constructor(args) {
     super({ className: 'importer', ...args });
@@ -9,29 +8,77 @@ export default class DataImporter extends Base {
     this.methodAdd('importData', this.importData);
   }
 
+  /**
+   * Import data from a JSON file
+   * @param {Object} options - The options for importing data
+   * @param {string} options.jsonPath - The path to the JSON file containing the data to import
+   * @param {Object} options.req - The request object
+   * @returns {Promise<Object>} A message indicating the completion of the import process
+   */
   async importData({ jsonPath, req }) {
     console.log('Starting import of data...');
     const jsonData = await fs.readFile(jsonPath, 'utf-8');
     const importData = JSON.parse(jsonData);
 
+    // Global ignoreDuplicates setting (optional)
+    const globalIgnoreDuplicates = importData.ignoreDuplicates || false;
+
     for (const entity of importData.entities) {
-      await this.importEntity(entity, req);
+      // Use entity-specific setting if available, otherwise use global setting
+      const ignoreDuplicates =
+        entity.ignoreDuplicates !== undefined
+          ? entity.ignoreDuplicates
+          : globalIgnoreDuplicates;
+
+      await this.importEntity(entity, req, ignoreDuplicates);
     }
 
     console.log('Data import completed');
     return { message: 'Data import completed successfully' };
   }
 
-  async importEntity(entity, req) {
+  /**
+   * Import an entity and its records
+   * @param {Object} entity - The entity to import
+   * @param {Object} req - The request object
+   * @param {boolean} ignoreDuplicates - Whether to ignore duplicate key errors
+   * @returns {Promise<void>}
+   */
+  async importEntity(entity, req, ignoreDuplicates) {
     const [packageName, className] = entity.name.split('.');
     const EntityClass = this.packages[packageName][className];
 
+    console.log(
+      `Importing ${entity.name} (ignoreDuplicates: ${ignoreDuplicates})`
+    );
+
     for (const record of entity.records) {
-      await this.importRecord(EntityClass, record, entity.name, req);
+      await this.importRecord(
+        EntityClass,
+        record,
+        entity.name,
+        req,
+        ignoreDuplicates
+      );
     }
   }
 
-  async importRecord(EntityClass, recordData, entityName, req) {
+  /**
+   * Import a single record
+   * @param {Object} EntityClass - The class representing the entity
+   * @param {Object} recordData - The data of the record to import
+   * @param {string} entityName - The name of the entity
+   * @param {Object} req - The request object
+   * @param {boolean} ignoreDuplicates - Whether to ignore duplicate key errors
+   * @returns {Promise<void>}
+   */
+  async importRecord(
+    EntityClass,
+    recordData,
+    entityName,
+    req,
+    ignoreDuplicates
+  ) {
     const resolvedData = await this.resolveReferences(recordData);
 
     try {
@@ -49,11 +96,24 @@ export default class DataImporter extends Base {
         .get(entityName)
         .push({ ...resolvedData, id: result.id });
     } catch (error) {
-      console.error(`Error importing ${entityName} record:`, error);
-      throw error;
+      if (ignoreDuplicates && error.code === 'ER_DUP_ENTRY') {
+        console.log(
+          `Ignoring duplicate entry for ${entityName}: ${JSON.stringify(
+            resolvedData
+          )}`
+        );
+      } else {
+        console.error(`Error importing ${entityName} record:`, error);
+        throw error;
+      }
     }
   }
 
+  /**
+   * Resolve references in the record data
+   * @param {Object} data - The record data containing references
+   * @returns {Promise<Object>} The resolved record data
+   */
   async resolveReferences(data) {
     const resolvedData = {};
 
@@ -68,6 +128,12 @@ export default class DataImporter extends Base {
     return resolvedData;
   }
 
+  /**
+   * Resolve a single reference
+   * @param {Object} ref - The reference object to resolve
+   * @returns {Promise<number>} The resolved ID
+   * @throws {Error} If the reference cannot be resolved
+   */
   async resolveReference(ref) {
     const [packageName, className] = ref.$ref.split('.');
     const EntityClass = this.packages[packageName][className];
