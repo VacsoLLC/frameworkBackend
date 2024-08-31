@@ -55,6 +55,7 @@ export default class Column {
 
     required = false, // Field is required
     validations = [], // Array of functions to validate the field
+    unique = false, // Field must be unique
   }) {
     if (!tableAlias) tableAlias = thisTable.table;
 
@@ -146,6 +147,7 @@ export default class Column {
     this.rolesCreate = rolesCreate;
     this.required = required;
     this.validations = validations;
+    this.unique = unique;
   }
 
   async getDefaultValue({ req }) {

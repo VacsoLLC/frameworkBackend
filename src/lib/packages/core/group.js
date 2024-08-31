@@ -11,6 +11,7 @@ export default class Group extends Table {
       friendlyName: 'Name',
       columnType: 'string',
       index: true,
+      unique: true,
       helpText: 'Group Name',
       rolesRead: ['Authenticated'],
     });

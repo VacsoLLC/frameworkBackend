@@ -39,6 +39,7 @@ export default class UserTable extends Table {
       friendlyName: 'Email Address',
       columnType: 'string',
       index: true,
+      unique: true,
       helpText: 'The email address of the user',
       rolesRead: ['Authenticated'],
       onCreateOrUpdate: (email) => {

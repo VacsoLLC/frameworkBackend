@@ -2,6 +2,9 @@ import http from 'http';
 import express from 'express';
 import router from './lib/router.js';
 import Packages from './lib/packages/index.js';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { systemRequest } from './util.js';
 
 export default class Backend {
   constructor(config) {
@@ -14,12 +17,21 @@ export default class Backend {
   async start() {
     // Load up all the packages
     this.packages = new Packages(this.config);
-    
-    
+
     if (process.argv.includes('--index-all')) {
       this.config.noBackgroundTasks = true;
       await this.packages.init();
       await this.indexAllTables();
+      process.exit(0);
+    }
+
+    const importDataArg = process.argv.find((arg) =>
+      arg.startsWith('--import-data=')
+    );
+    if (importDataArg) {
+      this.config.noBackgroundTasks = true;
+      await this.packages.init();
+      await this.importData(importDataArg.split('=')[1]);
       process.exit(0);
     }
 
@@ -67,5 +79,17 @@ export default class Backend {
       }
     }
     console.log('Finished full index of all tables.');
+  }
+
+  async importData(jsonPath) {
+    console.log('Starting import of data...');
+
+    const fullJsonPath = path.resolve(this.config.currentDirectory, jsonPath);
+
+    await this.packages.core.importer.importData({
+      jsonPath: fullJsonPath,
+      req: systemRequest(this),
+    });
+    console.log('Finished import of data.');
   }
 }

@@ -114,6 +114,15 @@ export default class Search extends Base {
 
         return await response.json();
       } else {
+        const documentData = { ...data, _id: id };
+
+        for (const key in documentData) {
+          if (documentData[key] === null || documentData[key] === undefined) {
+            // marqo doesn't like blank data...
+            delete documentData[key];
+          }
+        }
+
         const response = await fetch(
           `http://${this.host}:${this.port}/indexes/${this.indexName}/documents`,
           {
@@ -122,12 +131,7 @@ export default class Search extends Base {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              documents: [
-                {
-                  ...data,
-                  _id: id,
-                },
-              ],
+              documents: [documentData],
               tensorFields: ['searchText'],
             }),
           }

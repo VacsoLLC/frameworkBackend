@@ -203,6 +203,9 @@ export default class Table extends Base {
               if (column.index) {
                 table.index(columnName);
               }
+              if (column.unique) {
+                table.unique(columnName);
+              }
             });
           console.log(`Column ${columnName} added to ${this.table}!`);
         } catch (err) {
@@ -788,7 +791,11 @@ export default class Table extends Base {
       }
 
       // prepare the query
-      let query = this.knex.from(this.dbDotTable).where(where).first();
+      let query = this.knex
+        .from(this.dbDotTable)
+        .where(where)
+        .orderBy('id', 'desc')
+        .first();
 
       // Get columns to select
       query = this.selectColumns({
