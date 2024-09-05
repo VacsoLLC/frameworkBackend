@@ -923,12 +923,16 @@ export default class Table extends Base {
     try {
       const record =
         action !== 'delete' ? await this.recordGet({ recordId }) : null;
-      const searchText = record ? await this.objectToSearchText(record) : '';
+
+      const searchText = record ? await this.objectToSearchText(record) : ''; // tables can specify the text they want indexed
+
+      const document = await this.objectToSearchObject(record); // tables can specify what fields they want stored in the index for filter purposes
+
       await this.packages.core.search.updateIndex({
         id: `${this.db}.${this.table}.${recordId}`,
         action,
         data: {
-          ...record,
+          ...document,
           searchText,
           searchTableName: this.name,
           searchTable: this.table,
@@ -941,7 +945,11 @@ export default class Table extends Base {
     }
   }
 
-  objectToSearchText(obj, prefix = '') {
+  async objectToSearchObject(obj) {
+    return obj;
+  }
+
+  async objectToSearchText(obj, prefix = '') {
     let result = '';
     for (const [key, value] of Object.entries(obj)) {
       if (typeof value === 'object' && value !== null) {

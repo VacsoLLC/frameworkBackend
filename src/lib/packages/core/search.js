@@ -63,8 +63,15 @@ export default class Search extends Base {
     }
   }
 
-  async search({ query }) {
+  async search({ query, filter = null, req }) {
     console.log('Search query:', query);
+
+    const [[queryModified, filterModified]] =
+      await this.packages.core.event.emit('search.query', {
+        query,
+        filter,
+        req,
+      });
 
     try {
       const response = await fetch(
@@ -75,7 +82,8 @@ export default class Search extends Base {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            q: query,
+            q: queryModified || query,
+            filter: filterModified || filter,
             limit: 100,
           }),
         }
