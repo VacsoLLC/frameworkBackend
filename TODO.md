@@ -1,4 +1,4 @@
-- update, update & close should be hidden if the user can't update the record.
+- Attachments
 
 - Hello World sample base class
 - Hello World sample table class
