@@ -1,8 +1,8 @@
 import express from 'express';
-
-import readline from 'readline';
+import multer from 'multer';
 
 let packages;
+const upload = multer({ dest: 'uploads/' }).any();
 
 export default async function router(packages) {
   const routerReturn = express.Router();
@@ -16,6 +16,14 @@ export default async function router(packages) {
 
   routerReturn.get('/', async (_req, res) => {
     return res.status(200).json({ message: 'Hello World!' });
+  });
+
+  routerReturn.all('/core/attachment/upload', upload, async (...args) => {
+    args[0].params.packageName = 'core';
+    args[0].params.className = 'attachment';
+    args[0].params.action = 'upload';
+    // The attachment class is a special case that gets files uploaded that erquire special handling.
+    handlerFunction(packages, ...args);
   });
 
   routerReturn.all('/:packageName/:className/:action', (...args) =>
@@ -68,6 +76,7 @@ async function handlerFunction(packages, req, res) {
   // reqObject is sent to the class methods. It is a subset of req with some additional treats.
   const reqObject = new Req({
     req,
+    res,
   });
 
   // Make sure the properties are unique between the body and query params
@@ -89,6 +98,11 @@ async function handlerFunction(packages, req, res) {
       console.log(
         `Request, ${req?.user?.name}, ${req?.params?.packageName}, ${req?.params?.className}, ${req?.params?.action}, ${req?.params?.recordId}, ${time} ms`
       );
+
+      if (res.headersSent) {
+        // the method sent its own response. This is only used for attachment download currently.
+        return;
+      }
 
       if (!result) {
         return res.status(404).json({ message: 'Not Found' });
@@ -154,7 +168,7 @@ function validateProperties(...objects) {
 }
 
 class Req {
-  constructor({ req }) {
+  constructor({ req, res }) {
     this.action = req.params.action;
     this.packageName = req.params.packageName;
     this.className = req.params.className;
@@ -166,6 +180,8 @@ class Req {
     this.params = req.params;
     this.user = req.user;
     this.securityId = req.user?.securityId || null;
+    this.req = req;
+    this.res = res;
 
     if (req.params.recordId) {
       req.record = {

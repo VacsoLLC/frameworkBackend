@@ -16,6 +16,7 @@ export default class Action {
       disabled: null, // A function that return a string to disable the button. If the string is empty, the button is enabled. If the string is not empty, the button is disabled and the string is displayed as a tooltip.
       thisTable: null,
       noOp: false,
+      type: 'action', // currently supports 'action' and 'attach'. Attach is a special type of action that is used to attach a file to a record.
       // Override the defaults with the provided values
       ...action,
     };
