@@ -53,8 +53,8 @@ export default class Search extends Base {
         return;
       } catch (error) {
         if (attempt === maxRetries - 1) {
-          throw new Error(
-            `Failed to initialize index after ${maxRetries} attempts: ${error.message}`
+          console.log(
+            `Failed to initialize marqo search index after ${maxRetries} attempts: ${error.message}`
           );
         }
 
