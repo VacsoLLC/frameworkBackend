@@ -928,7 +928,8 @@ export default class Table extends Base {
 
       const document = await this.objectToSearchObject(record); // tables can specify what fields they want stored in the index for filter purposes
 
-      await this.packages.core.search.updateIndex({
+      // we run this without await as it may take a long time to return. We dont want to block the user.
+      this.packages.core.search.updateIndex({
         id: `${this.db}.${this.table}.${recordId}`,
         action,
         data: {
