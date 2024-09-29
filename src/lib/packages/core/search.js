@@ -131,6 +131,10 @@ export default class Search extends Base {
           }
         }
 
+        console.log(
+          `calling marqo http://${this.host}:${this.port}/indexes/${this.indexName}/documents`
+        );
+
         const response = await fetch(
           `http://${this.host}:${this.port}/indexes/${this.indexName}/documents`,
           {
@@ -147,6 +151,8 @@ export default class Search extends Base {
 
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
+        } else {
+          console.log('Marqo index update response:', response);
         }
 
         const result = await response.json();
