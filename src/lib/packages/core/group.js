@@ -37,7 +37,7 @@ export default class Group extends Table {
     this.addMenuItem({
       label: 'Groups',
       parent: 'Admin',
-      icon: 'pi-users',
+      icon: 'Users',
       order: 2,
     });
   }

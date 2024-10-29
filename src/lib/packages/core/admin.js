@@ -11,7 +11,7 @@ export default class Admin extends Base {
       parent: null,
       view: null,
       order: 1000,
-      icon: 'pi-lock',
+      icon: 'Lock',
     });
   }
 }

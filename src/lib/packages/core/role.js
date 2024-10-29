@@ -60,7 +60,7 @@ export default class Role extends Table {
     this.addMenuItem({
       label: 'Roles',
       parent: 'Admin',
-      icon: 'pi-key',
+      icon: 'KeyRound',
       order: 1.5,
     });
 
