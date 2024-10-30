@@ -55,6 +55,7 @@ export default class Table extends Base {
       method: 'recordUpdate',
       helpText: 'Update the record and stay here',
       rolesExecute: this.rolesWrite,
+      touch: false,
     });
 
     this.actionAdd({
@@ -63,6 +64,7 @@ export default class Table extends Base {
       helpText: 'Update the record and close',
       rolesExecute: this.rolesWrite,
       close: true,
+      touch: false,
     });
 
     this.actionAdd({
@@ -73,6 +75,7 @@ export default class Table extends Base {
       close: true,
       color: 'secondary',
       showSuccess: false,
+      touch: false,
     });
 
     this.actionAdd({
@@ -84,11 +87,13 @@ export default class Table extends Base {
       close: true,
       color: 'danger',
       rolesExecute: this.rolesDelete,
+      touch: false,
     });
 
     this.actionAdd({
       newLine: true,
       method: this.noOp, // FIXME: this is a workaround to the method registration process. fix this.
+      touch: false,
     });
 
     this.readOnlyMethodsAdd({

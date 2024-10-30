@@ -17,6 +17,7 @@ export default class Action {
       thisTable: null,
       noOp: false,
       type: 'action', // currently supports 'action' and 'attach'. Attach is a special type of action that is used to attach a file to a record.
+      touch: true, // display on touch screen interfaces
       // Override the defaults with the provided values
       ...action,
     };
