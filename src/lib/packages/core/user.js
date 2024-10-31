@@ -61,7 +61,7 @@ export default class UserTable extends Table {
     this.addMenuItem({
       label: 'Users',
       parent: 'Admin',
-      icon: 'pi-user',
+      icon: 'User',
       order: 1,
     });
 
