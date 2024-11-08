@@ -29,6 +29,17 @@ export default class Base {
     return;
   }
 
+  /**
+   * Adds a method to the methods collection.
+   *
+   * @param {string} id - The unique identifier for the method.
+   * @param {Function} method - The method to be added.
+   * @param {Function|null} [validationFunction=null] - An optional validation function for the method.
+   * @param {boolean} [overwrite=false] - Whether to overwrite an existing method with the same id.
+   * @throws {Error} If the id is not provided.
+   * @throws {Error} If the method is not provided or is not a function.
+   * @throws {Error} If a method with the same id already exists and overwrite is false.
+   */
   methodAdd(id, method, validationFunction = null, overwrite = false) {
     if (!id) {
       throw new Error('Method id is required.');

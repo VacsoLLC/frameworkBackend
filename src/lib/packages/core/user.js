@@ -113,6 +113,15 @@ export default class UserTable extends Table {
       packageName: 'core',
       className: 'user_role',
     }); //
+
+    this.methodAdd('findUserByPhoneNumber', this.findUserByPhoneNumber);
+  }
+
+  async findUserByPhoneNumber(args) {
+    // look up user by phone number here, return a navigate to that record.
+    return {
+      navigate: '/core/user/1',
+    };
   }
 
   async objectToSearchText(object) {
