@@ -9,6 +9,51 @@ const columnTypeConversion = {
 };
 
 export default class Column {
+  /**
+   * Creates an instance of a Column.
+   * 
+   * @param {Object} params - The parameters for the column.
+   * @param {Object} params.thisTable - The table object this column is from.
+   * @param {string} params.columnName - The ID of the column in the code.
+   * @param {string} [params.actualColumnName=null] - The actual column name in the table, used for joins.
+   * @param {Object} [params.table] - The table this column is from.
+   * @param {Object} [params.db] - The database this column is from.
+   * @param {string} [params.tableAlias=null] - The alias of the table this column is from.
+   * @param {string} [params.columnType='string'] - The column type (string, integer, etc.).
+   * @param {string} [params.fieldType] - The field type in the GUI, defaults to the value of columnType.
+   * @param {number} [params.fieldWidth=50] - The width of the field.
+   * @param {boolean} [params.index=false] - Whether to index this column.
+   * @param {boolean} [params.join=false] - If this is a foreign key, what table does it join to?
+   * @param {boolean} [params.joinDb=false] - If this is a foreign key, what db does it join to?
+   * @param {boolean} [params.referenceCreate=false] - If true, shows a create button next to the reference field.
+   * @param {Function} [params.queryModifier=false] - Can be used to modify the query for references before it is run.
+   * @param {boolean} [params.display=true] - Whether to display this in the GUI.
+   * @param {string} [params.friendlyName] - The display name of the column in the GUI.
+   * @param {string} [params.friendlyColumnName=params.actualColumnName] - The ID to use to display friendly names from the joined table.
+   * @param {string} [params.helpText=''] - Help text for the column to be displayed in the GUI.
+   * @param {boolean} [params.primaryKey=false] - Whether this is a primary key.
+   * @param {number} [params.order=10000] - The order of the column in the table.
+   * @param {boolean} [params.hidden=false] - Whether to always hide this column.
+   * @param {boolean} [params.hiddenList=false] - Whether to hide this column in the list view.
+   * @param {boolean} [params.hiddenRecord=false] - Whether to hide this column on create or update.
+   * @param {boolean} [params.hiddenCreate=false] - Whether to hide this column on create.
+   * @param {boolean} [params.hiddenUpdate=false] - Whether to hide this column on update.
+   * @param {*} [params.defaultValue] - The default value of the column.
+   * @param {boolean} [params.onCreate=false] - Whether to execute on create.
+   * @param {boolean} [params.onUpdate=false] - Whether to execute on update.
+   * @param {boolean} [params.onCreateOrUpdate=false] - Whether to execute on create or update.
+   * @param {string} [params.listStyle=null] - The style of the list.
+   * @param {boolean} [params.readOnly=false] - Whether the field is read-only and cannot be modified in the GUI.
+   * @param {Array} [params.options=[]] - The options for the column.
+   * @param {Array} [params.rolesRead=null] - Users must have one of these roles to read this column.
+   * @param {Array} [params.rolesWrite=null] - Users must have one of these roles to write to this column.
+   * @param {Array} [params.rolesCreate=null] - Users must have one of these roles to create this column.
+   * @param {boolean} [params.required=false] - Whether the field is required.
+   * @param {Array<Function>} [params.validations=[]] - Array of functions to validate the field.
+   * @param {boolean} [params.unique=false] - Whether the field must be unique.
+   * 
+   * @throws {Error} If both onCreateOrUpdate and onCreate or onUpdate are set.
+   */
   constructor({
     thisTable, // the table object this column is from
     columnName, // The ID of the column in the code

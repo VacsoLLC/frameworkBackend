@@ -118,6 +118,22 @@ export default class Base {
   }
 
   // Always call this after rolesWriteAdd to ensure that the menu item is automatically filtered for the roles that shouldn't see it.
+  /**
+   * Adds a menu item to the menuItems array with the provided properties and default values.
+   *
+   * @param {Object} menuItem - The menu item to be added.
+   * @param {string} [menuItem.label='No Label Provided'] - The label for the menu item.
+   * @param {string|null} [menuItem.parent=null] - The parent menu item, if any.
+   * @param {string} [menuItem.view='default'] - The view associated with the menu item.
+   * @param {Function} [menuItem.filter=() => ({})] - The filter function for the menu item.
+   * @param {number} [menuItem.order=500] - The order of the menu item in the menu.
+   * @param {string|null} [menuItem.icon=null] - The icon for the menu item.
+   * @param {Array<string>} [menuItem.rolesHide=[]] - Roles that should not see this menu item.
+   * @param {string} [menuItem.table=this.className] - The table associated with the menu item.
+   * @param {string} [menuItem.db=this.packageName] - The database associated with the menu item.
+   * @param {string} [menuItem.navigate=`/${this.packageName}/${this.className}`] - The navigation path for the menu item.
+   * @param {Array<string>} [menuItem.roles] - Roles that can see this menu item.
+   */
   async addMenuItem(menuItem) {
     //const rolesWrite = [...this.rolesWrite, ...(menuItem.roles || [])];
     let menuRoles = [];
