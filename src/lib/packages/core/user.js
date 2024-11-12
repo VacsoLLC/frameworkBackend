@@ -37,7 +37,7 @@ export default class UserTable extends Table {
     this.columnAdd({
       columnName: 'email',
       friendlyName: 'Email Address',
-      columnType: 'string',
+      columnType: 'email',
       index: true,
       unique: true,
       helpText: 'The email address of the user',
@@ -83,7 +83,7 @@ export default class UserTable extends Table {
     this.columnAdd({
       columnName:'officePhone',
       friendlyName: "Office phone",
-      columnType: "string",
+      columnType: "phone",
       helpText: "The office phone number of the user",
       rolesRead: ["Authenticated"],
       rolesWrite: ["Admin"],
@@ -94,7 +94,7 @@ export default class UserTable extends Table {
     this.columnAdd({
       columnName:'cellPhone',
       friendlyName: "Cell phone",
-      columnType: "string",
+      columnType: "phone",
       helpText: "The cell phone number of the user",
       rolesRead: ["Authenticated"],
       rolesWrite: ["Admin"],
@@ -105,7 +105,7 @@ export default class UserTable extends Table {
     this.columnAdd({
       columnName:'faxNumber',
       friendlyName: "Fax Number",
-      columnType: "string",
+      columnType: "phone",
       helpText: "The fax number of the user",
       rolesRead: ["Authenticated"],
       rolesWrite: ["Admin"],
