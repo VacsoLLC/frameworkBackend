@@ -58,6 +58,61 @@ export default class UserTable extends Table {
       rolesWrite: ['Admin'],
     });
 
+    this.columnAdd({
+      columnName: 'jobTitle',
+      friendlyName: "Job Title",
+      columnType: "string",
+      helpText: "The job title of the user",
+      rolesRead: ["Authenticated"],
+      rolesWrite: ["Admin"],
+      rolesDelete: ["Admin"],
+      rolesExecute: ["Admin"],
+    })
+
+    this.columnAdd({
+      columnName:'department',
+      friendlyName: "Department",
+      columnType: "string",
+      helpText: "The department of the user",
+      rolesRead: ["Authenticated"],
+      rolesWrite: ["Admin"],
+      rolesDelete: ["Admin"],
+      index: true,
+    })
+
+    this.columnAdd({
+      columnName:'officePhone',
+      friendlyName: "Office phone",
+      columnType: "string",
+      helpText: "The office phone number of the user",
+      rolesRead: ["Authenticated"],
+      rolesWrite: ["Admin"],
+      rolesDelete: ["Admin"],
+      rolesExecute: ["Admin"],
+    })
+
+    this.columnAdd({
+      columnName:'cellPhone',
+      friendlyName: "Cell phone",
+      columnType: "string",
+      helpText: "The cell phone number of the user",
+      rolesRead: ["Authenticated"],
+      rolesWrite: ["Admin"],
+      rolesDelete: ["Admin"],
+      rolesExecute: ["Admin"],
+    })
+
+    this.columnAdd({
+      columnName:'faxNumber',
+      friendlyName: "Fax Number",
+      columnType: "string",
+      helpText: "The fax number of the user",
+      rolesRead: ["Authenticated"],
+      rolesWrite: ["Admin"],
+      rolesDelete: ["Admin"],
+      rolesExecute: ["Admin"],
+    })
+
     this.addMenuItem({
       label: 'Users',
       parent: 'Admin',
