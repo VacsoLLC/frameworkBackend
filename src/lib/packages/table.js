@@ -658,7 +658,7 @@ export default class Table extends Base {
     }
   }
 
-  async recordUpdate({ recordId, data, req }) {
+  async recordUpdate({ recordId, data, req, message = 'Record Updated' }) {
     const newData = {};
 
     for (const columnName in data) {
@@ -727,7 +727,7 @@ export default class Table extends Base {
     }
 
     await this.audit({
-      message: 'Record Updated',
+      message,
       args: arguments,
       recordId,
       req,
