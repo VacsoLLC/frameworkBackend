@@ -57,7 +57,7 @@ export default class UserTable extends Table {
     });
 
     this.columnAdd({
-      columnName: 'jobTitle',
+      columnName: 'title',
       friendlyName: "Job Title",
       columnType: "string",
       helpText: "The job title of the user",
@@ -75,7 +75,7 @@ export default class UserTable extends Table {
     })
 
     this.columnAdd({
-      columnName:'officePhone',
+      columnName:'office',
       friendlyName: "Office phone",
       columnType: "phone",
       helpText: "The office phone number of the user",
@@ -83,7 +83,7 @@ export default class UserTable extends Table {
     })
 
     this.columnAdd({
-      columnName:'cellPhone',
+      columnName:'cell',
       friendlyName: "Cell phone",
       columnType: "phone",
       helpText: "The cell phone number of the user",
@@ -91,7 +91,7 @@ export default class UserTable extends Table {
     })
 
     this.columnAdd({
-      columnName:'faxNumber',
+      columnName:'fax',
       friendlyName: "Fax Number",
       columnType: "phone",
       helpText: "The fax number of the user",

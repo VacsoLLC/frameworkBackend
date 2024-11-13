@@ -7,7 +7,7 @@ import { systemRequest } from '../../../../src/util.js';
 
 export default class UserSync extends Base {
   constructor(args) {
-    super({ className: 'UserSync', ...args });
+    super({ className: 'usersync', ...args });
 
     this.methodAdd('sync', this.sync);
     if (
@@ -102,11 +102,25 @@ export default class UserSync extends Base {
             },
             req: systemRequest(this),
           });
-        } else if (localUsers[email].name != syncedUser.displayName) {
+        } else if (
+          localUsers[email].name != syncedUser.displayName ||
+          localUsers[email].title != syncedUser.jobTitle ||
+          localUsers[email].department != syncedUser.department ||
+          localUsers[email].office != syncedUser.businessPhones[0] ||
+          localUsers[email].cell != syncedUser.mobilePhone ||
+          localUsers[email].fax != syncedUser.faxNumber
+        ) {
           console.log(`Updating user: ${syncedUser.displayName}`);
           await this.packages.core.user.recordUpdate({
             recordId: localUsers[email].id,
-            data: { name: syncedUser.displayName },
+            data: {
+              name: syncedUser.displayName,
+              title: syncedUser.jobTitle,
+              department: syncedUser.department,
+              office: syncedUser.businessPhones[0],
+              cell: syncedUser.mobilePhone,
+              fax: syncedUser.faxNumber,
+            },
             message: 'Updated by user sync',
             req: systemRequest(this),
           });
