@@ -54,8 +54,6 @@ export default class UserTable extends Table {
       fieldType: 'boolean',
       defaultValue: true,
       helpText: 'Is the user allowed to login?',
-      rolesRead: ['Admin'],
-      rolesWrite: ['Admin'],
     });
 
     this.columnAdd({
@@ -64,9 +62,6 @@ export default class UserTable extends Table {
       columnType: "string",
       helpText: "The job title of the user",
       rolesRead: ["Authenticated"],
-      rolesWrite: ["Admin"],
-      rolesDelete: ["Admin"],
-      rolesExecute: ["Admin"],
     })
 
     this.columnAdd({
@@ -75,8 +70,7 @@ export default class UserTable extends Table {
       columnType: "string",
       helpText: "The department of the user",
       rolesRead: ["Authenticated"],
-      rolesWrite: ["Admin"],
-      rolesDelete: ["Admin"],
+      
       index: true,
     })
 
@@ -86,9 +80,6 @@ export default class UserTable extends Table {
       columnType: "phone",
       helpText: "The office phone number of the user",
       rolesRead: ["Authenticated"],
-      rolesWrite: ["Admin"],
-      rolesDelete: ["Admin"],
-      rolesExecute: ["Admin"],
     })
 
     this.columnAdd({
@@ -97,9 +88,6 @@ export default class UserTable extends Table {
       columnType: "phone",
       helpText: "The cell phone number of the user",
       rolesRead: ["Authenticated"],
-      rolesWrite: ["Admin"],
-      rolesDelete: ["Admin"],
-      rolesExecute: ["Admin"],
     })
 
     this.columnAdd({
@@ -108,9 +96,6 @@ export default class UserTable extends Table {
       columnType: "phone",
       helpText: "The fax number of the user",
       rolesRead: ["Authenticated"],
-      rolesWrite: ["Admin"],
-      rolesDelete: ["Admin"],
-      rolesExecute: ["Admin"],
     })
 
     this.addMenuItem({
