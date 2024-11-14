@@ -2,6 +2,8 @@
 const columnTypeConversion = {
   string: 'string',
   password: 'string',
+  email: 'string',
+  phone: 'string',
   integer: 'integer',
   datetime: 'bigint',
   text: 'text',
