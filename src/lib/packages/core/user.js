@@ -58,45 +58,45 @@ export default class UserTable extends Table {
 
     this.columnAdd({
       columnName: 'title',
-      friendlyName: "Job Title",
-      columnType: "string",
-      helpText: "The job title of the user",
-      rolesRead: ["Authenticated"],
-    })
+      friendlyName: 'Job Title',
+      columnType: 'string',
+      helpText: 'The job title of the user',
+      rolesRead: ['Authenticated'],
+    });
 
     this.columnAdd({
-      columnName:'department',
-      friendlyName: "Department",
-      columnType: "string",
-      helpText: "The department of the user",
-      rolesRead: ["Authenticated"],
-      
+      columnName: 'department',
+      friendlyName: 'Department',
+      columnType: 'string',
+      helpText: 'The department of the user',
+      rolesRead: ['Authenticated'],
+
       index: true,
-    })
+    });
 
     this.columnAdd({
-      columnName:'office',
-      friendlyName: "Office phone",
-      columnType: "phone",
-      helpText: "The office phone number of the user",
-      rolesRead: ["Authenticated"],
-    })
+      columnName: 'office',
+      friendlyName: 'Office phone',
+      columnType: 'phone',
+      helpText: 'The office phone number of the user',
+      rolesRead: ['Authenticated'],
+    });
 
     this.columnAdd({
-      columnName:'cell',
-      friendlyName: "Cell phone",
-      columnType: "phone",
-      helpText: "The cell phone number of the user",
-      rolesRead: ["Authenticated"],
-    })
+      columnName: 'cell',
+      friendlyName: 'Cell phone',
+      columnType: 'phone',
+      helpText: 'The cell phone number of the user',
+      rolesRead: ['Authenticated'],
+    });
 
     this.columnAdd({
-      columnName:'fax',
-      friendlyName: "Fax Number",
-      columnType: "phone",
-      helpText: "The fax number of the user",
-      rolesRead: ["Authenticated"],
-    })
+      columnName: 'fax',
+      friendlyName: 'Fax Number',
+      columnType: 'phone',
+      helpText: 'The fax number of the user',
+      rolesRead: ['Authenticated'],
+    });
 
     this.addMenuItem({
       label: 'Users',
@@ -153,6 +153,40 @@ export default class UserTable extends Table {
       packageName: 'core',
       className: 'user_role',
     }); //
+
+    this.methodAdd('findUserByPhoneNumber', this.findUserByPhoneNumber);
+  }
+
+  async findUserByPhoneNumber({ recordId, req }) {
+    // look up user by phone number here, return a navigate to that record.
+    // use frontend route such as: https://localhost:5173/core/user/action/findUserByPhoneNumber/3148036439
+    // https://localhost:5173/core/user/action/findUserByPhoneNumber/3143843354
+
+    const officeRecord = await this.knex(this.table)
+      .select('id')
+      .where({ office: recordId })
+      .first();
+
+    if (officeRecord) {
+      return {
+        navigate: `/core/user/${officeRecord.id}`,
+      };
+    }
+
+    const cellRecord = await this.knex(this.table)
+      .select('id')
+      .where({ cell: recordId })
+      .first();
+
+    if (cellRecord) {
+      return {
+        navigate: `/core/user/${cellRecord.id}`,
+      };
+    }
+
+    return {
+      message: `Couldn't find a user with that phone number (Office or Cell). Trying to match phone number: ${recordId}.`,
+    };
   }
 
   async objectToSearchText(object) {

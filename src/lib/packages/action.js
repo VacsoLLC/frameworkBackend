@@ -1,4 +1,27 @@
 export default class Action {
+  /**
+   * Creates a new action with the specified properties.
+   *
+   * @param {Object} action - The action configuration object.
+   * @param {string|null} action.id - Unique ID for the action.
+   * @param {string} [action.label='No Label Provided'] - Label for the action.
+   * @param {string} [action.helpText=''] - Help text displayed as a tooltip when hovering over the button.
+   * @param {boolean} [action.showSuccess=true] - Whether to show a success message after the action is complete.
+   * @param {number} action.actionid - ID for the action, calculated based on the number of existing actions.
+   * @param {string} [action.color='primary'] - Color of the button.
+   * @param {boolean} [action.close=false] - Whether to close the record after the action is complete.
+   * @param {string} [action.verify=false] - If supplied a string, it will be displayed before running the action.
+   * @param {Function|string|null} [action.method=null] - The method to run when the action is clicked.
+   * @param {Array<string>|null} [action.rolesExecute=null] - Roles required to execute the action.
+   * @param {Array<string>|null} [action.rolesNotExecute=null] - Roles that must not be present to execute the action.
+   * @param {Function|null} [action.disabled=null] - Function that returns a string to disable the button.
+   * @param {Object|null} [action.thisTable=null] - Reference to the table object.
+   * @param {boolean} [action.noOp=false] - Whether the action is a no-op.
+   * @param {string} [action.type='action'] - Type of the action, either 'action' or 'attach'.
+   * @param {boolean} [action.touch=true] - Whether to display on touch screen interfaces.
+   *
+   * @throws {Error} If the method type is invalid.
+   */
   constructor(action) {
     const newAction = {
       // Default Values
