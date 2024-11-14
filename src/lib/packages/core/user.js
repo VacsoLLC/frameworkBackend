@@ -117,8 +117,12 @@ export default class UserTable extends Table {
     this.methodAdd('findUserByPhoneNumber', this.findUserByPhoneNumber);
   }
 
-  async findUserByPhoneNumber(args) {
+  async findUserByPhoneNumber({ recordId, req }) {
     // look up user by phone number here, return a navigate to that record.
+    // use frontend route such as: https://localhost:5173/core/user/action/findUserByPhoneNumber/3148036439
+
+    this.record = this.knex(this.tablename).where({ phoneNumber: recordId }).first();
+    
     return {
       navigate: '/core/user/1',
     };
