@@ -153,7 +153,9 @@ export default class Base {
       label: 'No Label Provided',
       parent: null,
       view: 'default',
-      filter: () => ({}),
+      filter: () => {
+        return [];
+      },
       order: 500, // Order to put this item in the menu. The default value is 500. Admin menu is 1000.
       icon: null,
       rolesHide: [], // The user must NOT have any of these roles to see this menu item. If blank, everyone can see it.
