@@ -32,6 +32,7 @@ export default class Table extends Base {
     this.addRecords = []; // used to add records after the table is created, if they dont already exist. These can be records in other tables
     this.insertQueueForThisTable = []; // records to add to this table after initialization. Other tables can add records to this queue via thier addRecord method.
     this.initFunctions = []; // functions to run after the table is created
+    this.initPreFunctions = []; // functions to run before the table is created
     this.queryModifier = {}; // used to modify queries before they are run
     this.accessFilters = []; // used to filter records based on user access
     this.rolesDelete = []; // Default roles required to delete records in this class. The user must have ANY of these roles. This is role names and not IDs. If blank any authenticated user that can write can also delete.
@@ -144,14 +145,16 @@ export default class Table extends Base {
       tabName: 'Audit',
     });
 
+    await this.runFunctions(this.initPreFunctions);
     await this.initializeTable();
     await this.registerChildWithParents(packages);
-    await this.runInitFunctions();
+    await this.runFunctions(this.initFunctions);
   }
 
-  async runInitFunctions() {
-    for (const func of this.initFunctions) {
-      await func();
+  async runFunctions(functions) {
+    for (const func of functions) {
+      const bound = func.bind(this);
+      await bound(this);
     }
   }
 
@@ -980,8 +983,27 @@ export default class Table extends Base {
     // TODO finish implementing this.
   }
 
+  /**
+   * Adds a record to the list of initialization functions. This function will be run After the table is created. For before, see initPreAdd.
+   * Note that this function is run in the context of the table object of the table you run it on.
+   * Don't use arrow functions here if you want to use "this" natively. Alternatively, the object will be passed as the first argument.
+   *
+   * @param {Function} record - The function to be added to the pre-initialization list.
+   */
+
   initAdd(record) {
     this.initFunctions.push(record);
+  }
+
+  /**
+   * Adds a record to the list of pre-initialization functions. This function will be run before the table is created. For after, see initAdd.
+   * Note that this function is run in the context of the table object of the table you run it on.
+   * Don't use arrow functions here if you want to use "this" natively. Alternatively, the object will be passed as the first argument.
+   *
+   * @param {Function} record - The function to be added to the pre-initialization list.
+   */
+  initPreAdd(record) {
+    this.initPreFunctions.push(record);
   }
 
   async addAccessFilter(filter) {
