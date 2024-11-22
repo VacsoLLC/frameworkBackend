@@ -54,8 +54,10 @@ async function handlerFunction(packages, req, res) {
 
   // Authentication check
   if (
-    packages[req.params.packageName][req.params.className]
-      .authenticationRequired &&
+    packages[req.params.packageName][req.params.className].methodAuthRequired({
+      req,
+      id: req.params.action,
+    }) &&
     !req.user
   ) {
     return res.status(401).json({ message: 'Authentication Required.' });

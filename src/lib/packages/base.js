@@ -12,7 +12,7 @@ export default class Base {
     this.rolesAllRead = []; // This is a combination of all the roles that can possibly read from this class. This is used by the table class since a user can be given access to a single column.
     this.menuItems = [];
     this.readOnlyMethods = {}; // Methods that are read only. The user must have any of the rolesRead to execute these methods.
-    this.authenticationRequired = true; // If false, the user does not need to be authenticated to access this class.
+    this.authenticationRequired = true; // If false, the user does not need to be authenticated to access this class. This is a default. Methods can override this.
     this.methods = {}; // This is a list of all the methods in this class that are accessible via the API. use methodAdd to add a method.
     this.isTable = false;
 
@@ -36,11 +36,18 @@ export default class Base {
    * @param {Function} method - The method to be added.
    * @param {Function|null} [validationFunction=null] - An optional validation function for the method.
    * @param {boolean} [overwrite=false] - Whether to overwrite an existing method with the same id.
+   * @param {boolean} [authRequired=this.authenticationRequired] - Whether authentication is required to access the method. Defaults to the table value.
    * @throws {Error} If the id is not provided.
    * @throws {Error} If the method is not provided or is not a function.
    * @throws {Error} If a method with the same id already exists and overwrite is false.
    */
-  methodAdd(id, method, validationFunction = null, overwrite = false) {
+  methodAdd(
+    id,
+    method,
+    validationFunction = null,
+    overwrite = false,
+    authRequired = this.authenticationRequired
+  ) {
     if (!id) {
       throw new Error('Method id is required.');
     }
@@ -58,7 +65,16 @@ export default class Base {
     this.methods[id] = {
       method,
       validationFunction,
+      authRequired,
     };
+  }
+
+  methodAuthRequired({ req, id }) {
+    if (this.methods[id].authRequired === false) {
+      return false;
+    }
+
+    return true;
   }
 
   async methodValidate({ req, id, args }) {
