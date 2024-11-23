@@ -31,5 +31,8 @@
     "saml2-js": "^4.0.2",
     "smtp-server": "^3.13.4",
     "sqlite3": "^5.1.7"
+  },
+  "devDependencies": {
+    "prettier": "^3.3.3"
   }
 }
