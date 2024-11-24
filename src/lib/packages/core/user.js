@@ -123,6 +123,24 @@ export default class UserTable extends Table {
       },
     });
 
+    this.actionAdd({
+      label: 'Create Ticket for User',
+      method: 'createTicketForUser',
+      rolesExecute: ['Admin', 'Authenticated'],
+      inputs: {
+        ticketTitle: {
+          required: true,
+          fieldType: 'string',
+          friendlyName: 'Subject',
+        },
+        ticketDescription: {
+          required: false,
+          friendlyName: 'Body',
+          fieldType: 'text',
+        },
+      },
+    });
+
     // A special user that is used for system actions
     this.addRecord({
       name: 'System',
@@ -191,6 +209,17 @@ export default class UserTable extends Table {
 
   async objectToSearchText(object) {
     return `${object.name} ${object.email}`;
+  }
+  async createTicketForUser({ recordId, ticketTitle, ticketDescription, req }) {
+    this.emit('createTicketForUser', {
+      data: {
+        subject: ticketTitle,
+        body: ticketDescription,
+        requester: recordId,
+        assignedTo: recordId,
+      },
+      req,
+    });
   }
 
   async resetPassword({
