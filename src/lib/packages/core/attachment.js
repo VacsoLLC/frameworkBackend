@@ -1,7 +1,7 @@
 import Table from '../table.js';
-import { systemUser } from '../../../util.js';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import {systemUser} from '../../../util.js';
+import {fileURLToPath} from 'url';
+import {dirname, join} from 'path';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -67,8 +67,8 @@ export default class Audit extends Table {
         },
       ],
       hiddenCreate: true,
-      tabName: 'Comments',
-      defaultValue: ({ req }) => {
+      tabName: 'Attachments',
+      defaultValue: ({req}) => {
         return req.user.id;
       },
     });
@@ -97,8 +97,8 @@ export default class Audit extends Table {
   }
 
   // TODO permissions
-  async download({ recordId, req }) {
-    const record = await this.recordGet({ recordId });
+  async download({recordId, req}) {
+    const record = await this.recordGet({recordId});
 
     if (!record) {
       throw new Error('Record not found');
@@ -117,12 +117,12 @@ export default class Audit extends Table {
             } else {
               resolve();
             }
-          }
+          },
         );
     });
   }
 
-  async upload({ db, table, row, req }) {
+  async upload({db, table, row, req}) {
     const files = req.req.files;
 
     if (!files || files.length === 0) {
