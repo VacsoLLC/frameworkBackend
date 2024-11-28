@@ -123,23 +123,6 @@ export default class UserTable extends Table {
       },
     });
 
-    this.actionAdd({
-      label: 'Create Ticket for User',
-      method: 'createTicketForUser',
-      rolesExecute: ['Admin', 'Authenticated'],
-      inputs: {
-        ticketTitle: {
-          required: true,
-          fieldType: 'string',
-          friendlyName: 'Subject',
-        },
-        ticketDescription: {
-          required: false,
-          friendlyName: 'Body',
-          fieldType: 'text',
-        },
-      },
-    });
 
     // A special user that is used for system actions
     this.addRecord({
