@@ -3,7 +3,7 @@ import bcrypt from 'bcrypt';
 
 export default class UserTable extends Table {
   constructor(args) {
-    super({ name: 'User', className: 'user', ...args });
+    super({name: 'User', className: 'user', ...args});
 
     this.rolesWriteAdd('Admin');
     this.rolesDeleteAdd('Admin');
@@ -107,7 +107,7 @@ export default class UserTable extends Table {
 
     this.actionAdd({
       label: 'Reset Password',
-      method: 'resetPassword',
+      method: this.resetPassword,
       rolesExecute: ['Admin', 'Authenticated'],
       verify:
         'Enter a new password in the first field, and confirm it in the second field.',
@@ -157,14 +157,14 @@ export default class UserTable extends Table {
     this.methodAdd('findUserByPhoneNumber', this.findUserByPhoneNumber);
   }
 
-  async findUserByPhoneNumber({ recordId, req }) {
+  async findUserByPhoneNumber({recordId, req}) {
     // look up user by phone number here, return a navigate to that record.
     // use frontend route such as: https://localhost:5173/core/user/action/findUserByPhoneNumber/3148036439
     // https://localhost:5173/core/user/action/findUserByPhoneNumber/3143843354
 
     const officeRecord = await this.knex(this.table)
       .select('id')
-      .where({ office: recordId })
+      .where({office: recordId})
       .first();
 
     if (officeRecord) {
@@ -175,7 +175,7 @@ export default class UserTable extends Table {
 
     const cellRecord = await this.knex(this.table)
       .select('id')
-      .where({ cell: recordId })
+      .where({cell: recordId})
       .first();
 
     if (cellRecord) {
@@ -222,7 +222,7 @@ export default class UserTable extends Table {
 
   async auth(email, password) {
     const user = await this.get({
-      where: { email: email.toLowerCase(), loginAllowed: true },
+      where: {email: email.toLowerCase(), loginAllowed: true},
     });
     if (!user) {
       return false;
@@ -236,11 +236,11 @@ export default class UserTable extends Table {
   }
 
   async getUserLoginAllowed(email) {
-    return this.get({ where: { email, loginAllowed: true } });
+    return this.get({where: {email, loginAllowed: true}});
   }
 
   async getUser(email) {
-    return this.get({ where: { email } });
+    return this.get({where: {email}});
   }
 
   async getUserOrCreate(email) {
@@ -272,31 +272,31 @@ export default class UserTable extends Table {
     }
   }
 
-  async get({ where }) {
-    const user = await this.recordGet({ where, returnPasswords: true });
+  async get({where}) {
+    const user = await this.recordGet({where, returnPasswords: true});
 
     if (!user) {
       return false;
     }
 
     const groups = await this.packages.core.user_group.rowsGet({
-      where: { id2: user.id },
+      where: {id2: user.id},
     });
 
     user.groups = groups.rows.map((group) => group.id1);
 
     const user_roles = await this.packages.core.user_role.rowsGet({
-      where: { id2: user.id },
+      where: {id2: user.id},
     });
 
     const group_roles = await this.packages.core.group_role.rowsGet({
-      where: { id2: user.id },
+      where: {id2: user.id},
     });
 
     user.roles = this.combineUnique(
       user_roles.rows.map((role) => role.id1),
       group_roles.rows.map((role) => role.id1),
-      [1] // Everyone gets role 1, which is authenticated
+      [1], // Everyone gets role 1, which is authenticated
     );
     return user;
   }

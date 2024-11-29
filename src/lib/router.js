@@ -2,7 +2,7 @@ import express from 'express';
 import multer from 'multer';
 
 let packages;
-const upload = multer({ dest: 'uploads/' }).any();
+const upload = multer({dest: 'uploads/'}).any();
 
 export default async function router(packages) {
   const routerReturn = express.Router();
@@ -11,11 +11,11 @@ export default async function router(packages) {
   routerReturn.use((...args) => processToken(packages, ...args));
 
   routerReturn.get('/hello', async (_req, res) => {
-    return res.status(200).json({ message: 'Hello World!' });
+    return res.status(200).json({message: 'Hello World!'});
   });
 
   routerReturn.get('/', async (_req, res) => {
-    return res.status(200).json({ message: 'Hello World!' });
+    return res.status(200).json({message: 'Hello World!'});
   });
 
   routerReturn.all('/core/attachment/upload', upload, async (...args) => {
@@ -27,10 +27,10 @@ export default async function router(packages) {
   });
 
   routerReturn.all('/:packageName/:className/:action', (...args) =>
-    handlerFunction(packages, ...args)
+    handlerFunction(packages, ...args),
   );
   routerReturn.all('/:packageName/:className/:action/:recordId', (...args) =>
-    handlerFunction(packages, ...args)
+    handlerFunction(packages, ...args),
   );
 
   return routerReturn;
@@ -42,7 +42,7 @@ async function handlerFunction(packages, req, res) {
     !packages[req.params.packageName][req.params.className] ||
     !packages[req.params.packageName][req.params.className].methodExecute // methodExecute is provided by the Base class. Everything should have it.
   ) {
-    return res.status(404).json({ message: 'Not Found' });
+    return res.status(404).json({message: 'Not Found'});
   }
 
   // If the method starts with _, return 404
@@ -60,7 +60,7 @@ async function handlerFunction(packages, req, res) {
     }) &&
     !req.user
   ) {
-    return res.status(401).json({ message: 'Authentication Required.' });
+    return res.status(401).json({message: 'Authentication Required.'});
   }
 
   // Authorization check
@@ -72,7 +72,7 @@ async function handlerFunction(packages, req, res) {
       action: req.params.action,
     }))
   ) {
-    return res.status(403).json({ message: 'Unauthorized.' });
+    return res.status(403).json({message: 'Unauthorized.'});
   }
 
   // reqObject is sent to the class methods. It is a subset of req with some additional treats.
@@ -98,7 +98,7 @@ async function handlerFunction(packages, req, res) {
       const time = Date.now() - reqObject.date;
 
       console.log(
-        `Request, ${req?.user?.name}, ${req?.params?.packageName}, ${req?.params?.className}, ${req?.params?.action}, ${req?.params?.recordId}, ${time} ms`
+        `Request, ${req?.user?.name}, ${req?.params?.packageName}, ${req?.params?.className}, ${req?.params?.action}, ${req?.params?.recordId}, ${time} ms`,
       );
 
       if (res.headersSent) {
@@ -107,7 +107,7 @@ async function handlerFunction(packages, req, res) {
       }
 
       if (!result) {
-        return res.status(404).json({ message: 'Not Found' });
+        return res.status(404).json({message: 'Not Found'});
       }
 
       // FIXME I dont like this
@@ -118,13 +118,14 @@ async function handlerFunction(packages, req, res) {
       return res.status(200).json({
         data: result,
         messages: reqObject.messages,
+        navigate: reqObject.navigate,
       });
     } catch (error) {
       console.error(error);
 
       return res
         .status(500)
-        .json({ message: 'Server Error', error: error.message });
+        .json({message: 'Server Error', error: error.message});
     }
   }
 }
@@ -140,7 +141,7 @@ function processToken(packages, req, res, next) {
     return next();
   }
 
-  req.user = packages.core.login.userFromToken({ token });
+  req.user = packages.core.login.userFromToken({token});
 
   return next();
 }
@@ -154,7 +155,7 @@ function validateProperties(...objects) {
         keysSet.add(key);
       } else {
         throw new Error(
-          `Duplicate key: ${key}. Keys must be unique between url route params, query params and body.`
+          `Duplicate key: ${key}. Keys must be unique between url route params, query params and body.`,
         );
       }
     });
@@ -170,7 +171,7 @@ function validateProperties(...objects) {
 }
 
 class Req {
-  constructor({ req, res }) {
+  constructor({req, res}) {
     this.action = req.params.action;
     this.packageName = req.params.packageName;
     this.className = req.params.className;
@@ -184,6 +185,7 @@ class Req {
     this.securityId = req.user?.securityId || null;
     this.req = req;
     this.res = res;
+    this.navigate = null;
 
     if (req.params.recordId) {
       req.record = {
@@ -192,6 +194,10 @@ class Req {
         db: req.params.packageName,
       };
     }
+  }
+
+  navigateTo(path) {
+    this.navigate = path;
   }
 
   message({
@@ -221,6 +227,6 @@ class Req {
           summary = 'Info';
       }
     }
-    this.messages.push({ severity, summary, detail, life });
+    this.messages.push({severity, summary, detail, life});
   }
 }

@@ -45,25 +45,16 @@ export default class Action {
       ...action,
     };
 
-    // if method is a function, add it to the class. if its a string, add its function to the class
-    if (
-      typeof newAction.method == 'string' &&
-      action.thisTable[newAction.method]
-    ) {
-      action.thisTable.methodAdd(
-        newAction.id,
-        action.thisTable[newAction.method],
-        (args) => this.validate(args)
-      );
-    } else if (typeof newAction.method == 'function') {
+    // if method is a function, add it to the class.
+    if (typeof newAction.method == 'function') {
       action.thisTable.methodAdd(newAction.id, newAction.method, (args) =>
-        this.validate(args)
+        this.validate(args),
       );
     } else if (newAction.method === null) {
       newAction.noOp = true;
     } else {
       throw new Error(
-        `Invalid method type. Method must be a name of a method on the table's class or a function. Label: ${newAction.label}`
+        `Invalid method type. Method must be a function. Label: ${newAction.label}`,
       );
     }
 
@@ -100,7 +91,7 @@ export default class Action {
 
   async disabledCheck(record, req) {
     if (this.disabled) {
-      const result = await this.disabled.call(this.thisTable, { record, req });
+      const result = await this.disabled.call(this.thisTable, {record, req});
       if (result) {
         return result;
       } else {
@@ -111,7 +102,7 @@ export default class Action {
     }
   }
 
-  async validate({ args }) {
+  async validate({args}) {
     if (!this.inputs || this.inputs.length == 0) return; // no inputs, no validations
 
     const errors = [];
@@ -142,7 +133,7 @@ export default class Action {
   }
 
   toJSON() {
-    const that = { ...this };
+    const that = {...this};
 
     delete that.thisTable;
     return that;

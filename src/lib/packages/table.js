@@ -53,7 +53,7 @@ export default class Table extends Base {
 
     this.actionAdd({
       label: 'Update',
-      method: 'recordUpdate',
+      method: this.recordUpdate,
       helpText: 'Update the record and stay here',
       rolesExecute: this.rolesWrite,
       touch: false,
@@ -61,7 +61,7 @@ export default class Table extends Base {
 
     this.actionAdd({
       label: 'Update & Close',
-      method: 'recordUpdate',
+      method: this.recordUpdate,
       helpText: 'Update the record and close',
       rolesExecute: this.rolesWrite,
       close: true,
@@ -82,7 +82,7 @@ export default class Table extends Base {
     this.actionAdd({
       label: 'Delete',
       helpText: 'Delete Record',
-      method: 'recordDelete',
+      method: this.recordDelete,
       verify:
         'Are you sure you want to delete this record? This action cannot be undone.',
       close: true,
