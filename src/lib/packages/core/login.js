@@ -24,6 +24,7 @@ export default class Login extends Base {
     return {
       message: 'Authentication successful',
       token,
+      email: user.email,
     };
   }
 
