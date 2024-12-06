@@ -1,13 +1,13 @@
 import Base from '../base.js';
 
-import { Client } from '@microsoft/microsoft-graph-client';
-import { TokenCredentialAuthenticationProvider } from '@microsoft/microsoft-graph-client/authProviders/azureTokenCredentials/index.js';
-import { ClientSecretCredential } from '@azure/identity';
-import { systemRequest } from '../../../../src/util.js';
+import {Client} from '@microsoft/microsoft-graph-client';
+import {TokenCredentialAuthenticationProvider} from '@microsoft/microsoft-graph-client/authProviders/azureTokenCredentials/index.js';
+import {ClientSecretCredential} from '@azure/identity';
+import {systemRequest} from '../../../../src/util.js';
 
 export default class UserSync extends Base {
   constructor(args) {
-    super({ className: 'usersync', ...args });
+    super({className: 'usersync', ...args});
 
     this.methodAdd('sync', this.sync);
     if (
@@ -22,24 +22,39 @@ export default class UserSync extends Base {
         this.sync();
       }, this.config.usersync.syncInterval);
     }
+
+    this.packages.core.user.initAdd(async () => {
+      this.packages.core.user.actionAdd({
+        id: 'sync',
+        label: '',
+        icon: 'CloudDownload',
+        helpText: 'Sync users from Office 365',
+        type: 'table',
+        rolesExecute: ['admin'],
+        method: async (...args) => {
+          return await this.sync();
+        },
+      });
+    });
   }
 
   async sync() {
-    this.listUsers();
+    await this.listUsers();
+    return {};
   }
 
   initializeGraphClient() {
     const credential = new ClientSecretCredential(
       this.config.usersync.tenantId,
       this.config.usersync.clientId,
-      this.config.usersync.clientSecret
+      this.config.usersync.clientSecret,
     );
 
     const authProvider = new TokenCredentialAuthenticationProvider(credential, {
       scopes: ['https://graph.microsoft.com/.default'],
     });
 
-    return Client.initWithMiddleware({ authProvider });
+    return Client.initWithMiddleware({authProvider});
   }
 
   async listUsers() {
@@ -51,12 +66,12 @@ export default class UserSync extends Base {
       const response = await graphClient
         .api('/users')
         .select(
-          'displayName,userPrincipalName,mail,jobTitle,department,businessPhones,mobilePhone,faxNumber'
+          'displayName,userPrincipalName,mail,jobTitle,department,businessPhones,mobilePhone,faxNumber',
         )
         .get();
 
       const usersWithEmail = response.value.filter(
-        (user) => user.mail && user.mail.trim() !== ''
+        (user) => user.mail && user.mail.trim() !== '',
       );
 
       // Print users in a formatted table
@@ -73,7 +88,7 @@ export default class UserSync extends Base {
               : 'N/A',
           'Mobile Phone': user.mobilePhone || 'N/A',
           Fax: user.faxNumber || 'N/A',
-        }))
+        })),
       );
 
       const records = await this.packages.core.user.rowsGet({});
@@ -126,7 +141,7 @@ export default class UserSync extends Base {
           });
         } else {
           console.log(
-            `User already exists and needs no updates: ${syncedUser.displayName}`
+            `User already exists and needs no updates: ${syncedUser.displayName}`,
           );
         }
       }

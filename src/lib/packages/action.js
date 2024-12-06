@@ -26,7 +26,7 @@ export default class Action {
     const newAction = {
       // Default Values
       id: null, // Unique ID for the action.
-      label: 'No Label Provided',
+      label: '',
       helpText: '', // Help text displayed as a tool tip when hovering over the button
       showSuccess: true, // Show a success message after the action is complete
       actionid: Object.keys(action.thisTable.actions).length * 100 + 100, // this allows someone to insert an action between two actions
@@ -37,9 +37,10 @@ export default class Action {
       rolesExecute: null, // The user must have one of these roles to execute the action. If blank, all the default writers can execute the action.
       rolesNotExecute: null, // The user must NOT have any of these roles to execute the action. If blank, all the default writers can execute the action.
       disabled: null, // A function that return a string to disable the button. If the string is empty, the button is enabled. If the string is not empty, the button is disabled and the string is displayed as a tooltip.
+      icon: null, // The icon to display on the button
       thisTable: null,
       noOp: false,
-      type: 'action', // currently supports 'action' and 'attach'. Attach is a special type of action that is used to attach a file to a record.
+      type: 'action', // currently supports 'action', 'table' and 'attach'. Attach is a special type of action that is used to attach a file to a record. table are table level actions.
       touch: true, // display on touch screen interfaces
       // Override the defaults with the provided values
       ...action,

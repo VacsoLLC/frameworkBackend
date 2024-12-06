@@ -124,7 +124,7 @@ export default class Table extends Base {
   }
 
   async readOnlyMethodsAdd(methods) {
-    this.readOnlyMethods = { ...this.readOnlyMethods, ...methods };
+    this.readOnlyMethods = {...this.readOnlyMethods, ...methods};
   }
 
   async init(packages) {
@@ -225,7 +225,7 @@ export default class Table extends Base {
     // create default records, if nessary
     if (tableCreated) {
       for (const record of this.insertQueueForThisTable) {
-        let recordToCreate = { ...record };
+        let recordToCreate = {...record};
         delete recordToCreate.className;
         delete recordToCreate.packageName;
         for (const columnName in recordToCreate) {
@@ -315,7 +315,7 @@ export default class Table extends Base {
   async columnAdd(args) {
     if (this.columns[args.columnName]) {
       throw new Error(
-        `Column ${args.columnName} already exists in table ${this.table}!`
+        `Column ${args.columnName} already exists in table ${this.table}!`,
       );
     }
 
@@ -420,11 +420,11 @@ export default class Table extends Base {
 
     if (this.actions[id]) {
       throw new Error(
-        `Duplicate action key: ${id}. Each method must have a unqiue label (after spaces have been removed) or id field.`
+        `Duplicate action key: ${id}. Each method must have a unqiue label (after spaces have been removed) or id field.`,
       );
     }
 
-    const newAction = new Action({ ...action, id, thisTable: this });
+    const newAction = new Action({...action, id, thisTable: this});
 
     this.actions[id] = newAction;
   }
@@ -436,7 +436,7 @@ export default class Table extends Base {
       .hasColumn(this.dbDotTable, columnName);
   }
 
-  selectJoin({ query }) {
+  selectJoin({query}) {
     for (const columnName in this.columns) {
       const column = this.columns[columnName];
 
@@ -445,7 +445,7 @@ export default class Table extends Base {
           `${column.joinDb}.${column.join} as ${columnName}`,
           `${this.table}.${columnName}`,
           '=',
-          `${columnName}.id`
+          `${columnName}.id`,
         );
       }
     }
@@ -484,7 +484,7 @@ export default class Table extends Base {
       }
 
       selectedColumns.push(
-        `${column.tableAlias}.${column.actualColumnName} as ${columnName}`
+        `${column.tableAlias}.${column.actualColumnName} as ${columnName}`,
       );
     }
 
@@ -530,11 +530,11 @@ export default class Table extends Base {
       query = this.queryModifier[queryModifier](
         query,
         this.knex,
-        queryModifierArgs
+        queryModifierArgs,
       );
     }
 
-    query = this.selectJoin({ query });
+    query = this.selectJoin({query});
 
     let count = null;
 
@@ -547,7 +547,7 @@ export default class Table extends Base {
     }
 
     // get columns and joins to select
-    query = this.selectColumns({ columns, user: req?.user, query });
+    query = this.selectColumns({columns, user: req?.user, query});
 
     // apply sorting, limits, and offsets
     query = query.orderBy(sortField, sortOrder);
@@ -562,31 +562,31 @@ export default class Table extends Base {
     };
   }
 
-  async schemaGet({ req }) {
+  async schemaGet({req}) {
     let schema = {};
 
     for (const columnName in this.columns) {
       const column = this.columns[columnName];
 
-      const temp = { ...column };
+      const temp = {...column};
 
       // skip this column if user has no access
       if (
-        !(await column.hasReadAccess({ req })) &&
-        !(await column.hasWriteAccess({ req }))
+        !(await column.hasReadAccess({req})) &&
+        !(await column.hasWriteAccess({req}))
       )
         continue;
 
       if (
-        (await column.hasReadAccess({ req })) &&
-        !(await column.hasWriteAccess({ req }))
+        (await column.hasReadAccess({req})) &&
+        !(await column.hasWriteAccess({req}))
       ) {
         temp.readOnly = true;
       }
 
-      temp.createAllowed = await column.hasCreateAccess({ req });
+      temp.createAllowed = await column.hasCreateAccess({req});
 
-      temp.defaultValue = (await column?.getDefaultValue({ req })) ?? undefined;
+      temp.defaultValue = (await column?.getDefaultValue({req})) ?? undefined;
 
       schema[columnName] = temp;
     }
@@ -600,17 +600,27 @@ export default class Table extends Base {
     };
   }
 
-  async actionsGet({ id, req }) {
+  async actionsGet({id, req, type = 'record'}) {
     let filteredActions = {};
 
-    const record = await this.recordGet({ recordId: id, req });
+    let record = {};
+
+    if (type == 'record') {
+      record = await this.recordGet({recordId: id, req});
+    }
 
     for (const [key, action] of Object.entries(this.actions)) {
+      if (type == 'record' && action.type == 'table') {
+        continue;
+      } else if (type == 'table' && action.type != 'table') {
+        continue;
+      }
+
       if (!(await action.haveAccess(req))) {
         continue;
       }
 
-      const newAction = { ...action.toJSON() };
+      const newAction = {...action.toJSON()};
 
       newAction.disabled = await action.disabledCheck(record, req);
 
@@ -620,7 +630,7 @@ export default class Table extends Base {
     return filteredActions;
   }
 
-  async childrenGet({ req }) {
+  async childrenGet({req}) {
     const children = [];
     for (const child of this.children) {
       if (
@@ -638,7 +648,7 @@ export default class Table extends Base {
     return children;
   }
 
-  async recordCreate({ data, audit = true, req }) {
+  async recordCreate({data, audit = true, req}) {
     let filteredData = {};
 
     const errors = [];
@@ -647,7 +657,7 @@ export default class Table extends Base {
       const column = this.columns[columnName];
 
       // Check write permission
-      const { hasCreateAccess } = await column.getAccess({
+      const {hasCreateAccess} = await column.getAccess({
         req,
       });
 
@@ -662,7 +672,7 @@ export default class Table extends Base {
 
       // if the column was not supplied by the user, but there is a default value, use that.
       if (!filteredData[columnName]) {
-        const temp = await column.getDefaultValue({ req });
+        const temp = await column.getDefaultValue({req});
         if (temp) {
           filteredData[columnName] = temp;
         }
@@ -675,12 +685,12 @@ export default class Table extends Base {
 
       if (column.columnType == 'password' && filteredData[columnName]) {
         filteredData[columnName] = await this.hashPassword(
-          filteredData[columnName]
+          filteredData[columnName],
         );
       }
 
       errors.push(
-        ...(await column.validate({ value: filteredData[columnName], req }))
+        ...(await column.validate({value: filteredData[columnName], req})),
       );
     }
 
@@ -722,14 +732,14 @@ export default class Table extends Base {
       // Update search index
       await this.updateSearchIndex(recordId, 'create');
 
-      return { id: recordId };
+      return {id: recordId};
     } catch (err) {
       console.error(`Error creating record in ${this.table}: ${err}`);
       throw err;
     }
   }
 
-  async recordUpdate({ recordId, data, req, message = 'Record Updated' }) {
+  async recordUpdate({recordId, data, req, message = 'Record Updated'}) {
     const newData = {};
 
     for (const columnName in data) {
@@ -749,7 +759,7 @@ export default class Table extends Base {
       }
 
       // Check write permission
-      const { hasWriteAccess } = await columnSettings.getAccess({
+      const {hasWriteAccess} = await columnSettings.getAccess({
         req,
       });
 
@@ -813,7 +823,7 @@ export default class Table extends Base {
     // Update search index
     await this.updateSearchIndex(recordId, 'update');
 
-    return { rowsUpdated: result };
+    return {rowsUpdated: result};
   }
 
   async emit(event, args) {
@@ -821,11 +831,11 @@ export default class Table extends Base {
     args.db = this.db;
     await this.packages.core.event.emit(
       `${this.db}.${this.table}.${event}`,
-      args
+      args,
     );
   }
 
-  async recordDelete({ recordId, req }) {
+  async recordDelete({recordId, req}) {
     await this.emit('recordDelete.before', {
       recordId,
       req,
@@ -852,18 +862,18 @@ export default class Table extends Base {
     // Update search index
     await this.updateSearchIndex(recordId, 'delete');
 
-    return { rowsDeleted: result };
+    return {rowsDeleted: result};
   }
 
   // returns a single record. If multiple records are found, only the first is returned.
-  async recordGet({ recordId, where, returnPasswords = false, req }) {
+  async recordGet({recordId, where, returnPasswords = false, req}) {
     if (!recordId && !where) {
       throw new Error('recordId or where is required to fetch a record.');
     }
 
     try {
       if (!where) {
-        where = { [`${this.dbDotTable}.id`]: recordId };
+        where = {[`${this.dbDotTable}.id`]: recordId};
       }
 
       // prepare the query
@@ -882,7 +892,7 @@ export default class Table extends Base {
       });
 
       // Get joins
-      query = this.selectJoin({ query });
+      query = this.selectJoin({query});
 
       // add any access filters
       for (const accessFilter of this.accessFilters) {
@@ -924,20 +934,20 @@ export default class Table extends Base {
     return result;
   }
 
-  async audit({ args, message, recordId, req }) {
+  async audit({args, message, recordId, req}) {
     if (!req || !req.user || !req.user.id) {
       throw new Error(
-        'A request object with a user object is required for auditing. Include the request object when calling the function.'
+        'A request object with a user object is required for auditing. Include the request object when calling the function.',
       );
     }
 
     if (!recordId) {
       throw new Error(
-        'A recordId is required for auditing. Include recordId when calling function.'
+        'A recordId is required for auditing. Include recordId when calling function.',
       );
     }
 
-    let data = { ...args[0] };
+    let data = {...args[0]};
 
     // Hide some data we dont want to audit ever.
     if (data.req) {
@@ -1017,7 +1027,7 @@ export default class Table extends Base {
 
     try {
       const record =
-        action !== 'delete' ? await this.recordGet({ recordId }) : null;
+        action !== 'delete' ? await this.recordGet({recordId}) : null;
 
       const searchText = record ? await this.objectToSearchText(record) : ''; // tables can specify the text they want indexed
 
@@ -1064,17 +1074,17 @@ export default class Table extends Base {
   async indexAllRecords() {
     console.log(`Indexing all records for ${this.db}.${this.table}`);
     try {
-      const { rows } = await this.rowsGet({ limit: 1000000 }); // Adjust limit as needed
+      const {rows} = await this.rowsGet({limit: 1000000}); // Adjust limit as needed
       for (const record of rows) {
         await this.updateSearchIndex(record.id, 'create');
       }
       console.log(
-        `Finished indexing ${rows.length} records for ${this.db}.${this.table}`
+        `Finished indexing ${rows.length} records for ${this.db}.${this.table}`,
       );
     } catch (error) {
       console.error(
         `Error indexing records for ${this.db}.${this.table}:`,
-        error
+        error,
       );
     }
   }
