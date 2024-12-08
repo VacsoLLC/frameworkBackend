@@ -105,6 +105,9 @@ export default class Audit extends Table {
     }
 
     return new Promise((resolve, reject) => {
+      // Please check this
+      req.res.setHeader('Content-Disposition', 'inline; filename="sample.pdf"');
+      req.res.setHeader('Content-Type', 'application/pdf'); 
       req.res
         .status(200)
         .sendFile(
