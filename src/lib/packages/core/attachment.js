@@ -2,6 +2,7 @@ import Table from '../table.js';
 import {systemUser} from '../../../util.js';
 import {fileURLToPath} from 'url';
 import {dirname, join} from 'path';
+import { clouddebugger } from 'googleapis/build/src/apis/clouddebugger/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -103,11 +104,13 @@ export default class Audit extends Table {
     if (!record) {
       throw new Error('Record not found');
     }
+    const isPdf = record?.filename?.endsWith('.pdf');
 
     return new Promise((resolve, reject) => {
-      // Please check this
-      req.res.setHeader('Content-Disposition', 'inline; filename="sample.pdf"');
-      req.res.setHeader('Content-Type', 'application/pdf'); 
+      if(isPdf){
+        req.res.setHeader('Content-Disposition', `inline; filename="${record.filename}"`);
+        req.res.setHeader('Content-Type', 'application/pdf'); 
+      }
       req.res
         .status(200)
         .sendFile(
