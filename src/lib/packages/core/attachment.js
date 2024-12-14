@@ -2,7 +2,13 @@ import Table from '../table.js';
 import {systemUser} from '../../../util.js';
 import {fileURLToPath} from 'url';
 import {dirname, join} from 'path';
-import { clouddebugger } from 'googleapis/build/src/apis/clouddebugger/index.js';
+import {clouddebugger} from 'googleapis/build/src/apis/clouddebugger/index.js';
+import fs from 'fs';
+import {randomUUID} from 'crypto';
+import path from 'path';
+import {createWriteStream} from 'fs';
+import {mkdir} from 'fs/promises';
+import {pipeline} from 'stream/promises';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -97,66 +103,103 @@ export default class Audit extends Table {
     this.methodAdd('download', this.download);
   }
 
-  // TODO permissions
   async download({recordId, req}) {
     const record = await this.recordGet({recordId});
 
     if (!record) {
       throw new Error('Record not found');
     }
+
     const isPdf = record?.filename?.endsWith('.pdf');
 
-    return new Promise((resolve, reject) => {
-      if(isPdf){
-        req.res.setHeader('Content-Disposition', `inline; filename="${record.filename}"`);
-        req.res.setHeader('Content-Type', 'application/pdf'); 
-      }
-      req.res
-        .status(200)
-        .sendFile(
-          join(process.cwd(), 'uploads', record.storedFilename),
-          null,
-          (err) => {
-            if (err) {
-              console.error('Error sending file:', err);
-              reject(err);
-            } else {
-              resolve();
-            }
-          },
-        );
-    });
+    if (isPdf) {
+      req.res.header(
+        'Content-Disposition',
+        `inline; filename="${record.filename}"`,
+      );
+      req.res.header('Content-Type', 'application/pdf');
+    }
+    req.res.status(200);
+
+    const stream = fs.createReadStream(record.storedFilename);
+    await req.res.send(stream);
   }
 
-  async upload({db, table, row, req}) {
-    const files = req.req.files;
+  async upload({id, req}) {
+    const parts = await req.req.parts();
 
-    if (!files || files.length === 0) {
-      throw new Error('No files provided');
+    const files = [];
+    const fields = {};
+
+    for await (const part of parts) {
+      if (part.type == 'file') {
+        console.log('TRIPPfile', part.filename);
+        const storedFilename = await this.saveFile(part.file);
+        files.push({
+          name: part.filename,
+          stored: storedFilename,
+          image: part.mimetype.startsWith('image/'),
+        });
+      } else {
+        console.log('TRIPP Not File', part);
+        fields[part.fieldname] = part.value;
+      }
     }
 
-    const attachmentRecords = [];
-
     for (const file of files) {
-      const attachmentRecord = await this.recordCreate({
+      await this.recordCreate({
         data: {
-          filename: file.originalname,
-          storedFilename: file.filename,
-          db,
-          table,
-          row,
+          filename: file.name,
+          storedFilename: file.stored,
+          db: fields.db,
+          table: fields.table,
+          row: fields.row,
           author: req.user.id,
-          image: file.mimetype.startsWith('image/'),
+          image: file.image,
         },
         req,
       });
-
-      attachmentRecords.push(attachmentRecord);
     }
 
-    return {
-      ok: true,
-      attachmentRecords,
-    };
+    return {};
+  }
+
+  async saveFile(fileStream, originalFilename) {
+    // Generate GUID and get first 3 characters for directory structure
+    const guid = randomUUID();
+    const [dir1, dir2, dir3] = guid.split('');
+
+    // Create the nested directory path
+    const basePath = path.join(process.cwd(), 'uploads');
+    const dir1Path = path.join(basePath, dir1);
+    const dir2Path = path.join(dir1Path, dir2);
+    const dir3Path = path.join(dir2Path, dir3);
+
+    // Create directories recursively
+    try {
+      await mkdir(dir1Path, {recursive: true});
+      await mkdir(dir2Path, {recursive: true});
+      await mkdir(dir3Path, {recursive: true});
+    } catch (err) {
+      if (err.code !== 'EEXIST') throw err;
+    }
+
+    // Create full file path
+    const filePath = path.join(dir3Path, guid);
+
+    // Create write stream
+    const writeStream = createWriteStream(filePath);
+
+    // Pipe the file stream to disk
+    try {
+      await pipeline(fileStream, writeStream);
+
+      // Return the GUID and full path
+      return filePath;
+    } catch (err) {
+      // Clean up the write stream on error
+      writeStream.destroy();
+      throw err;
+    }
   }
 }

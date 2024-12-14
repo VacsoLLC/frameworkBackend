@@ -1,39 +1,37 @@
-import express from 'express';
-import multer from 'multer';
+export default function routes(fastify, options) {
+  const packages = options.packages;
 
-let packages;
-const upload = multer({dest: 'uploads/'}).any();
+  fastify.addHook('onRequest', async (request, reply) => {
+    const authHeader = request.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
 
-export default async function router(packages) {
-  const routerReturn = express.Router();
+    if (!token) {
+      request.user = null;
+      console.log('No token found.');
+      return;
+    }
 
-  // Apply the token middleware
-  routerReturn.use((...args) => processToken(packages, ...args));
-
-  routerReturn.get('/hello', async (_req, res) => {
-    return res.status(200).json({message: 'Hello World!'});
+    request.user = packages.core.login.userFromToken({token});
   });
 
-  routerReturn.get('/', async (_req, res) => {
-    return res.status(200).json({message: 'Hello World!'});
+  fastify.get('/hello', async (request, reply) => {
+    return {message: 'Hello World!'};
   });
 
-  routerReturn.all('/core/attachment/upload', upload, async (...args) => {
-    args[0].params.packageName = 'core';
-    args[0].params.className = 'attachment';
-    args[0].params.action = 'upload';
-    // The attachment class is a special case that gets files uploaded that erquire special handling.
-    handlerFunction(packages, ...args);
+  fastify.get('/', async (request, reply) => {
+    return {message: 'Hello World!'};
   });
 
-  routerReturn.all('/:packageName/:className/:action', (...args) =>
-    handlerFunction(packages, ...args),
+  fastify.all('/:packageName/:className/:action', async (...args) => {
+    return await handlerFunction(packages, ...args);
+  });
+
+  fastify.all(
+    '/:packageName/:className/:action/:recordId',
+    async (request, reply) => {
+      return await handlerFunction(packages, request, reply);
+    },
   );
-  routerReturn.all('/:packageName/:className/:action/:recordId', (...args) =>
-    handlerFunction(packages, ...args),
-  );
-
-  return routerReturn;
 }
 
 async function handlerFunction(packages, req, res) {
@@ -42,14 +40,16 @@ async function handlerFunction(packages, req, res) {
     !packages[req.params.packageName][req.params.className] ||
     !packages[req.params.packageName][req.params.className].methodExecute // methodExecute is provided by the Base class. Everything should have it.
   ) {
-    return res.status(404).json({message: 'Not Found'});
+    res.status(404);
+    return {message: 'Not Found'};
   }
 
-  // If the method starts with _, return 404
+  // If the method starts with _, return 40427614809-2b3d-4bda-b104-8cc606122912
   if (req?.params?.action?.startsWith('_')) {
-    return res.status(404).json({
+    res.status(404);
+    return {
       message: 'Not Found. Methods starting with _ can not be called.',
-    });
+    };
   }
 
   // Authentication check
@@ -60,7 +60,8 @@ async function handlerFunction(packages, req, res) {
     }) &&
     !req.user
   ) {
-    return res.status(401).json({message: 'Authentication Required.'});
+    res.status(401);
+    return {message: 'Authentication Required.'};
   }
 
   // Authorization check
@@ -72,7 +73,8 @@ async function handlerFunction(packages, req, res) {
       action: req.params.action,
     }))
   ) {
-    return res.status(403).json({message: 'Unauthorized.'});
+    res.status(403);
+    return {message: 'Unauthorized.'};
   }
 
   // reqObject is sent to the class methods. It is a subset of req with some additional treats.
@@ -82,7 +84,7 @@ async function handlerFunction(packages, req, res) {
   });
 
   // Make sure the properties are unique between the body and query params
-  validateProperties(req.body, req.query);
+  validateProperties(req.body || {}, req.query);
 
   if (packages[req.params.packageName]?.[req.params.className]) {
     try {
@@ -101,49 +103,33 @@ async function handlerFunction(packages, req, res) {
         `Request, ${req?.user?.name}, ${req?.params?.packageName}, ${req?.params?.className}, ${req?.params?.action}, ${req?.params?.recordId}, ${time} ms`,
       );
 
-      if (res.headersSent) {
+      if (res.sent) {
         // the method sent its own response. This is only used for attachment download currently.
         return;
       }
 
       if (!result) {
-        return res.status(404).json({message: 'Not Found'});
+        res.status(404);
+        return {message: 'Not Found'};
       }
 
-      // FIXME I dont like this
+      // FIXME I dont like this. Maybe only used for SAML right now.
       if (result?.redirect) {
         return res.redirect(result.redirect);
       }
 
-      return res.status(200).json({
+      return {
         data: result,
         messages: reqObject.messages,
         navigate: reqObject.navigate,
-      });
+      };
     } catch (error) {
       console.error(error);
 
-      return res
-        .status(500)
-        .json({message: 'Server Error', error: error.message});
+      res.status(500);
+      return {message: 'Server Error', error: error.message};
     }
   }
-}
-
-function processToken(packages, req, res, next) {
-  // Get the token from the request header
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
-
-  if (!token) {
-    req.user = null;
-    console.log('No token found.');
-    return next();
-  }
-
-  req.user = packages.core.login.userFromToken({token});
-
-  return next();
 }
 
 function validateProperties(...objects) {
