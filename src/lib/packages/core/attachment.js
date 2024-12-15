@@ -110,6 +110,14 @@ export default class Audit extends Table {
       throw new Error('Record not found');
     }
 
+    try {
+      await fs.promises.access(record.storedFilename);
+    } catch (error) {
+      req.res.status(404);
+      req.res.send('File not found');
+      return;
+    }
+
     const isPdf = record?.filename?.endsWith('.pdf');
 
     if (isPdf) {
