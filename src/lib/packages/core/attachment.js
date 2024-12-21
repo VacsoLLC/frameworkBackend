@@ -110,6 +110,15 @@ export default class Audit extends Table {
       throw new Error('Record not found');
     }
 
+    // user must have access to the parent record to access attachments.
+    const parentRecord = await this.packages[record.db][record.table].recordGet(
+      {recordId: record.row, req},
+    );
+
+    if (!parentRecord) {
+      throw new Error('Record not fount');
+    }
+
     try {
       await fs.promises.access(record.storedFilename);
     } catch (error) {
@@ -154,8 +163,19 @@ export default class Audit extends Table {
       }
     }
 
+    // user must have access to the parent record to access attachments.
+    const parentRecord = await this.packages[fields.db][fields.table].recordGet(
+      {recordId: fields.row, req},
+    );
+
+    if (!parentRecord) {
+      throw new Error('Access Denied');
+    }
+
+    const ids = [];
+
     for (const file of files) {
-      await this.recordCreate({
+      const result = await this.recordCreate({
         data: {
           filename: file.name,
           storedFilename: file.stored,
@@ -167,9 +187,10 @@ export default class Audit extends Table {
         },
         req,
       });
+      ids.push(result.id);
     }
 
-    return {};
+    return {ids, id: ids[0]};
   }
 
   async saveFile(fileStream, originalFilename) {
