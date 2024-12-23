@@ -92,7 +92,6 @@ export default class Views extends Table {
     });
     this.methodAdd('getActiveViews', this.getActiveViews);
     this.methodAdd('logUser', this.logUser);
-
   }
 
   async logUser(args) {
@@ -106,10 +105,10 @@ export default class Views extends Table {
     });
 
     if (currentEntry) {
-      const currentTime = (new Date()).getTime() / 1000;
+      const currentTime = new Date().getTime() / 1000;
       const startTime = currentEntry.end_time / 1000;
       const diff = currentTime - startTime;
-      if(diff < 60) {
+      if (diff < 60) {
         await this.recordUpdate({
           recordId: currentEntry.id,
           data: {
@@ -134,22 +133,27 @@ export default class Views extends Table {
   }
 
   async getActiveViews(args) {
-    const currentTime = (new Date()).getTime() / 1000;
-    const views = await this.rowsGet({
-      where: {
+    const currentTime = new Date().getTime();
+    let query = this.knex(this.dbDotTable);
+    query = this.selectColumns({
+      query,
+      columns: this.columns,
+      user: args?.req?.user,
+      includeJoins: true,
+      returnPasswords: false,
+    });
+    query = query
+      .where({
         db: args.db,
         table: args.table,
         row: args.row,
-      },
-      sortField:'end_time',
-      sortOrder: 'asc',
-      req: args.req,
-    });
-    const uniqueViews =  [...new Map(views?.rows.map(item =>
-      [item['author'], item])).values()]
-    return {rows: uniqueViews.filter((view) => {
-      const startTime = view.end_time / 1000
-      return (currentTime - startTime) < 20;
-    })}
+      })
+      .where('end_time', '>', currentTime - 20 * 1000);
+    query = this.selectJoin({query})
+    query.groupBy('author');
+    const views = await this.queryRun(query);
+    return {
+      rows: views,
+    };
   }
 }
