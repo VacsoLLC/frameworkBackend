@@ -1,10 +1,39 @@
-import http from 'http';
-import express from 'express';
+import Fastify from 'fastify';
+import fastifyMultipart from '@fastify/multipart';
+
 import router from './lib/router.js';
 import Packages from './lib/packages/index.js';
 import path from 'path';
-import { fileURLToPath } from 'url';
-import { systemRequest } from './util.js';
+
+import {systemRequest} from './util.js';
+
+// TODO clean this up... this should only be used in dev... in prod should use standard stdout logging.
+function Logger(...args) {
+  this.args = args;
+}
+Logger.prototype.info = function (msg) {
+  console.log('myLogger info', msg);
+};
+Logger.prototype.error = function (msg) {
+  console.log('myLogger error', msg);
+};
+Logger.prototype.debug = function (msg) {
+  console.log('myLogger debug', msg);
+};
+Logger.prototype.fatal = function (msg) {
+  console.log('myLogger fatal', msg);
+};
+Logger.prototype.warn = function (msg) {
+  console.log('myLogger warn', msg);
+};
+Logger.prototype.trace = function (msg) {
+  console.log('myLogger trace', msg);
+};
+Logger.prototype.child = function () {
+  return new Logger();
+};
+
+const myLogger = new Logger();
 
 export default class Backend {
   constructor(config) {
@@ -12,6 +41,12 @@ export default class Backend {
       dbDirs: [],
       ...config,
     };
+
+    this.fastify = Fastify({
+      logger: {
+        logger: myLogger,
+      },
+    });
   }
 
   async start() {
@@ -26,8 +61,9 @@ export default class Backend {
     }
 
     const importDataArg = process.argv.find((arg) =>
-      arg.startsWith('--import-data=')
+      arg.startsWith('--import-data='),
     );
+
     if (importDataArg) {
       this.config.noBackgroundTasks = true;
       await this.packages.init();
@@ -37,17 +73,35 @@ export default class Backend {
 
     await this.packages.init();
 
-    const { PORT = 3001 } = this.config;
-    const app = express();
-    this.server = http.createServer(app);
+    const {PORT = 3001} = this.config;
 
-    app.use(express.json());
-    app.use(express.urlencoded({ extended: true }));
-    app.use('/api', await router(this.packages));
-
-    this.server.listen(PORT, () => {
-      console.log(`Server listening at http://localhost:${PORT}`);
+    this.fastify.register(fastifyMultipart, {
+      limits: {
+        fileSize: 1024 * 1024 * 250, // 250MB
+        files: 100, // 100 files
+      },
     });
+
+    this.fastify.register(router, {
+      prefix: '/api',
+      packages: this.packages,
+    });
+
+    this.fastify.listen(
+      {
+        host: '0.0.0.0',
+        port: PORT,
+      },
+      function (err, address) {
+        if (err) {
+          this.fastify.log.error(err);
+
+          process.exit(1);
+        }
+        // Server is now listening on ${address}
+        console.log(`API server is now listening on ${address}`);
+      },
+    );
 
     // Handle SIGTERM signal
     process.on('SIGTERM', this.stop);
@@ -56,16 +110,11 @@ export default class Backend {
     process.on('SIGINT', this.stop);
   }
 
-  stop() {
+  async stop() {
     console.log('Shutting down gracefully...');
-    if (this.server) {
-      this.server.close(() => {
-        console.log('Server closed');
-        process.exit(0);
-      });
-    } else {
-      process.exit(0);
-    }
+    await this.fastify.close();
+    console.log('Server closed');
+    process.exit(0);
   }
 
   async indexAllTables() {
