@@ -312,7 +312,7 @@ export default class Table extends Base {
    *
    * @throws {Error} If both onCreateOrUpdate and onCreate or onUpdate are set.
    */
-  async columnAdd(args) {
+  columnAdd(args) {
     if (this.columns[args.columnName]) {
       throw new Error(
         `Column ${args.columnName} already exists in table ${this.table}!`,
@@ -328,7 +328,7 @@ export default class Table extends Base {
     this.manyToMany.push(args);
   }
 
-  async manyToOneAdd({
+  manyToOneAdd({
     referencedTableName,
     referencedDb = this.db,
     referenceCreate = false, // If true, shows a create button next to the reference field
@@ -342,8 +342,9 @@ export default class Table extends Base {
   }) {
     columnName = columnName || `${referencedTableName}_id`;
 
+    /* Multiple display columns has not been implemented yet...
     for (const columnData of displayColumns) {
-      await this.columnAdd({
+      this.columnAdd({
         columnType: 'string', // Assuming 'string' as a default type for display columns
         table: referencedTableName,
         tableAlias: columnName,
@@ -355,13 +356,17 @@ export default class Table extends Base {
         rolesWrite: args.rolesWrite,
       });
     }
+      */
 
-    await this.columnAdd({
+    this.columnAdd({
       columnName,
       columnType: 'integer',
       display: false,
       join: referencedTableName,
       joinDb: referencedDb,
+      joinAlias: columnName,
+      joinDisplay: displayColumns[0].columnName,
+      joinDisplayAlias: columnName + '_' + displayColumns[0].columnName,
       friendlyName: displayColumns[0].friendlyName,
       friendlyColumnName: displayColumns[0].columnName,
       defaultValue,
@@ -442,10 +447,10 @@ export default class Table extends Base {
 
       if (column.join) {
         query = query.leftJoin(
-          `${column.joinDb}.${column.join} as ${columnName}`,
+          `${column.joinDb}.${column.join} as ${column.joinAlias}`,
           `${this.table}.${columnName}`,
           '=',
-          `${columnName}.id`,
+          `${column.joinAlias}.id`,
         );
       }
     }
@@ -486,6 +491,13 @@ export default class Table extends Base {
       selectedColumns.push(
         `${column.tableAlias}.${column.actualColumnName} as ${columnName}`,
       );
+
+      if (column.join) {
+        console.log('Joining:', column);
+        selectedColumns.push(
+          `${column.joinAlias}.${column.joinDisplay} as ${column.joinDisplayAlias}`,
+        );
+      }
     }
 
     query.select(selectedColumns);

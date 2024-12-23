@@ -13,7 +13,7 @@ const columnTypeConversion = {
 export default class Column {
   /**
    * Creates an instance of a Column.
-   * 
+   *
    * @param {Object} params - The parameters for the column.
    * @param {Object} params.thisTable - The table object this column is from.
    * @param {string} params.columnName - The ID of the column in the code.
@@ -53,7 +53,7 @@ export default class Column {
    * @param {boolean} [params.required=false] - Whether the field is required.
    * @param {Array<Function>} [params.validations=[]] - Array of functions to validate the field.
    * @param {boolean} [params.unique=false] - Whether the field must be unique.
-   * 
+   *
    * @throws {Error} If both onCreateOrUpdate and onCreate or onUpdate are set.
    */
   constructor({
@@ -71,6 +71,9 @@ export default class Column {
     // Reference fields
     join = false, // if this is a foreign key, what table does it join to?
     joinDb = false, // if this is a foreign key, what db does it join to?
+    joinAlias = false, // The alias for the joined table
+    joinDisplay = false, // The column to display from the joined table
+    joinDisplayAlias = false, // The alias for the column to display from the joined table
     referenceCreate = false, // If true, shows a create button next to the reference field
     queryModifier = false, // Can be used to modify the query for references before it is run. Useful for filtering in fancy ways.
 
@@ -79,7 +82,7 @@ export default class Column {
     friendlyColumnName = actualColumnName, // The ID to use to display friendly names from the joined table
     helpText = '', // help text for the column to be displayed in the GUI
     primaryKey = false, // is this a primaryKey?
-    order = 10000, // the order of the column in the table. The default value is 10,000. The primaryKey defaults to 5000.
+    order, // the order of the column in the table. The default value is 10,000. The primaryKey defaults to 5000.
 
     hidden = false, // hide awlays
     hiddenList = false,
@@ -104,6 +107,10 @@ export default class Column {
     validations = [], // Array of functions to validate the field
     unique = false, // Field must be unique
   }) {
+    if (!order) {
+      order = 10000 + (Object.keys(thisTable.columns).length + 1) * 100;
+    }
+
     if (!tableAlias) tableAlias = thisTable.table;
 
     if (rolesWrite === null) {
@@ -132,7 +139,7 @@ export default class Column {
 
     if (onCreateOrUpdate && (onCreate || onUpdate)) {
       throw new Error(
-        `Cannot have onCreateOrUpdate and onCreate or onUpdate at the same time.`
+        `Cannot have onCreateOrUpdate and onCreate or onUpdate at the same time.`,
       );
     }
 
@@ -143,7 +150,7 @@ export default class Column {
 
     if (!dbColumnType) {
       console.error(
-        `Unknown column type '${columnType}'. Defaulting to string.`
+        `Unknown column type '${columnType}'. Defaulting to string.`,
       );
       dbColumnType = columnTypeConversion['string'];
       columnType = 'string';
@@ -170,6 +177,9 @@ export default class Column {
     this.display = display;
     this.join = join;
     this.joinDb = joinDb;
+    this.joinAlias = joinAlias;
+    this.joinDisplay = joinDisplay;
+    this.joinDisplayAlias = joinDisplayAlias;
     this.actualColumnName = actualColumnName;
     this.primaryKey = primaryKey;
     this.order = order;
@@ -197,15 +207,15 @@ export default class Column {
     this.unique = unique;
   }
 
-  async getDefaultValue({ req }) {
+  async getDefaultValue({req}) {
     if (this.defaultValue && typeof this.defaultValue === 'function') {
-      return await this.defaultValue({ req });
+      return await this.defaultValue({req});
     } else if (this.defaultValue) {
       return this.defaultValue;
     }
   }
 
-  async hasReadAccess({ req }) {
+  async hasReadAccess({req}) {
     if (req.securityId == 1) return true; // System user can always read
     if (!req || !req.user || !req.user.userHasAnyRoleName) return true; // System request, no auth required
     if (this.rolesWrite.length == 0) return true; // No write roles, anyone can read
@@ -214,7 +224,7 @@ export default class Column {
     return false; // User has no matching roles
   }
 
-  async hasWriteAccess({ req }) {
+  async hasWriteAccess({req}) {
     if (req.securityId == 1) return true; // System user can always write
     if (!req || !req.user || !req.user.userHasAnyRoleName) return true; // System request, no auth required
     if (this.rolesWrite.length == 0) return true; // No write roles, anyone can write
@@ -222,7 +232,7 @@ export default class Column {
     return false; // User does not have write access
   }
 
-  async hasCreateAccess({ req }) {
+  async hasCreateAccess({req}) {
     if (req.securityId == 1) return true; // System user can always create
     if (!req || !req.user || !req.user.userHasAnyRoleName) return true; // System request, no auth required
     if (this.rolesWrite.length == 0) return true; // No write roles, anyone can create
@@ -233,15 +243,15 @@ export default class Column {
     return false; // User does not have create access
   }
 
-  async getAccess({ req }) {
+  async getAccess({req}) {
     return {
-      hasReadAccess: await this.hasReadAccess({ req }),
-      hasWriteAccess: await this.hasWriteAccess({ req }),
-      hasCreateAccess: await this.hasCreateAccess({ req }),
+      hasReadAccess: await this.hasReadAccess({req}),
+      hasWriteAccess: await this.hasWriteAccess({req}),
+      hasCreateAccess: await this.hasCreateAccess({req}),
     };
   }
 
-  async validate({ value, req }) {
+  async validate({value, req}) {
     const errors = [];
     if (this.required && !value) {
       errors.push(`Field ${this.friendlyName} is required.`);

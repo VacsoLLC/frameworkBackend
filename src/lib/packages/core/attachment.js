@@ -13,7 +13,7 @@ import {pipeline} from 'stream/promises';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-export default class Audit extends Table {
+export default class Attachment extends Table {
   constructor(args) {
     super({
       name: 'Attachment',

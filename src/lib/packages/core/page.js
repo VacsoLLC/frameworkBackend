@@ -10,6 +10,19 @@ export default class Page extends Table {
       columnType: 'string',
     });
 
+    this.manyToOneAdd({
+      columnName: 'parent',
+      referencedDb: 'core',
+      referencedTableName: 'page',
+      displayColumns: [
+        {
+          columnName: 'title',
+          friendlyName: 'Parent',
+        },
+      ],
+      tabName: 'Children',
+    });
+
     this.columnAdd({
       columnName: 'body',
       friendlyName: 'Body',
