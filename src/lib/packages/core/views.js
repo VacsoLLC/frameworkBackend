@@ -104,11 +104,10 @@ export default class Views extends Table {
       },
     });
 
-    if (currentEntry) {
-      const currentTime = new Date().getTime() / 1000;
-      const startTime = currentEntry.end_time / 1000;
-      const diff = currentTime - startTime;
-      if (diff < 60) {
+    const currentTime = new Date().getTime() / 1000;
+    const startTime = (currentEntry.end_time ?? 0) / 1000;
+    const diff = currentTime - startTime;
+    if (currentEntry && diff < 60) {
         await this.recordUpdate({
           recordId: currentEntry.id,
           data: {
@@ -118,18 +117,20 @@ export default class Views extends Table {
           req: args.req,
           audit: false,
         });
-        return;
-      }
+    } else {
+
+      await this.recordCreate({
+        data: {
+          db: args.db,
+          table: args.table,
+          row: args.row,
+        },
+        audit: false,
+        req: args.req,
+      });
     }
-    await this.recordCreate({
-      data: {
-        db: args.db,
-        table: args.table,
-        row: args.row,
-      },
-      audit: false,
-      req: args.req,
-    });
+    const result = await this.getActiveViews(args);
+    return result
   }
 
   async getActiveViews(args) {
