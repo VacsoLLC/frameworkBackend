@@ -105,7 +105,7 @@ export default class Views extends Table {
     });
 
     const currentTime = new Date().getTime() / 1000;
-    const startTime = (currentEntry.end_time ?? 0) / 1000;
+    const startTime = (currentEntry?.end_time ?? 0) / 1000;
     const diff = currentTime - startTime;
     if (currentEntry && diff < 60) {
         await this.recordUpdate({
