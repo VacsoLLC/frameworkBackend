@@ -9,6 +9,7 @@ import path from 'path';
 import {createWriteStream} from 'fs';
 import {mkdir} from 'fs/promises';
 import {pipeline} from 'stream/promises';
+import { Readable } from 'stream';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -191,6 +192,40 @@ export default class Attachment extends Table {
     }
 
     return {ids, id: ids[0]};
+  }
+
+  async addFilesToRecord({inputFiles, db, table, row, req}) {
+    const files = [];
+    const fields = {};
+
+    console.log('TRIPP inputFiles', inputFiles);
+    for await (const part of inputFiles) {
+      if (part.type == 'file') {
+        const storedFilename = await this.saveFile(Readable.from(part.file));
+        files.push({
+          name: part.filename,
+          stored: storedFilename,
+          image: part.mimetype.startsWith('image/'),
+        });
+      } else {
+        fields[part.fieldname] = part.value;
+      }
+    }
+
+    for (const file of files) {
+      await this.recordCreate({
+        data: {
+          filename: file.name,
+          storedFilename: file.stored,
+          db: db,
+          table: table,
+          row: row,
+          author: req.user.id,
+          image: file.image,
+        },
+        req,
+      });
+    }
   }
 
   async saveFile(fileStream, originalFilename) {

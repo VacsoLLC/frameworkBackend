@@ -2,7 +2,6 @@ import EmailProvider from './emailprovider.js';
 
 import * as graph from '@microsoft/microsoft-graph-client';
 import { TokenCredentialAuthenticationProvider } from '@microsoft/microsoft-graph-client/authProviders/azureTokenCredentials/index.js';
-import * as msal from '@azure/msal-node';
 import { ClientSecretCredential } from '@azure/identity';
 
 import { convert } from 'html-to-text';
@@ -40,6 +39,7 @@ export default class Microsoft extends EmailProvider {
         .get();
 
       for (const email of messages.value) {
+        const attachments = await this.client.api(`/users/${this.config.email}/messages/${email.id}/attachments`).get()
         let body = '';
         if (email.body.contentType === 'html') {
           body = convert(email.body.content, { wordwrap: 130 });
@@ -57,6 +57,11 @@ export default class Microsoft extends EmailProvider {
           emailId: email.id,
           emailProvider: this.config.name,
           assignmentGroup: this.config.assignmentGroup,
+          attachments: (attachments?.value ?? []).map((attachment) => ({
+            contentBytes:Buffer.from(attachment?.contentBytes, 'base64'),
+            name: attachment?.name,
+            contentType: attachment?.contentType,
+          }))
         });
 
         if (processed) {

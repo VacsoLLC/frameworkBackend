@@ -7,6 +7,9 @@ export default class Google extends EmailProvider {
   constructor(config) {
     super(config);
 
+     }
+
+  async init() {
     if (
       !this.config.auth ||
       !this.config.auth.client_email ||
@@ -31,9 +34,8 @@ export default class Google extends EmailProvider {
     );
 
     this.gmail = google.gmail({ version: 'v1', auth: client });
-  }
+ 
 
-  async init() {
     if (!this.gmail) {
       return;
     }
@@ -86,6 +88,14 @@ export default class Google extends EmailProvider {
           emailId: email.messageId,
           emailProvider: this.config.name,
           assignmentGroup: this.config.assignmentGroup,
+          attachments: (email?.attachments ?? []).map((attachment) => {
+            return {
+              name: attachment.filename,
+              contentBytes: Buffer.from(attachment?.content),
+              type: 'file',
+              contentType: attachment.mimeType,
+            };
+          })
         });
 
         if (processed) {

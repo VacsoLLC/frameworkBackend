@@ -145,6 +145,18 @@ export default class Table extends Base {
       tabName: 'Audit',
     });
 
+    this.childAdd({
+      db: 'core', // db name we want to make a child
+      table: 'views', // table name we want to make a child
+      columnmap: {
+        // key is the column name in the child table, value is from the parent table. Only db, table and id are availible options at this time from the parent
+        db: 'db',
+        table: 'table',
+        row: 'id',
+      },
+      tabName: 'Views',
+    });
+
     await this.runFunctions(this.initPreFunctions);
     await this.initializeTable();
     await this.registerChildWithParents(packages);
@@ -751,7 +763,13 @@ export default class Table extends Base {
     }
   }
 
-  async recordUpdate({recordId, data, req, message = 'Record Updated'}) {
+  async recordUpdate({
+    recordId,
+    data,
+    req,
+    message = 'Record Updated',
+    audit = true,
+  }) {
     const newData = {};
 
     for (const columnName in data) {
@@ -819,12 +837,14 @@ export default class Table extends Base {
       }
     }
 
-    await this.audit({
-      message,
-      args: arguments,
-      recordId,
-      req,
-    });
+    if (audit) {
+      await this.audit({
+        message,
+        args: arguments,
+        recordId,
+        req,
+      });
+    }
 
     await this.emit('recordUpdate.after', {
       recordId,
