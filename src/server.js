@@ -7,7 +7,6 @@ import path from 'path';
 
 import {systemRequest} from './util.js';
 
-// TODO clean this up... this should only be used in dev... in prod should use standard stdout logging.
 function Logger(...args) {
   this.args = args;
 }
