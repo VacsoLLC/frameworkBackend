@@ -12,22 +12,22 @@ function Logger(...args) {
   this.args = args;
 }
 Logger.prototype.info = function (msg) {
-  console.log('myLogger info', msg);
+  console.log('Fastify info', msg);
 };
 Logger.prototype.error = function (msg) {
-  console.log('myLogger error', msg);
+  console.log('Fastify error', msg);
 };
 Logger.prototype.debug = function (msg) {
-  console.log('myLogger debug', msg);
+  console.log('Fastify debug', msg);
 };
 Logger.prototype.fatal = function (msg) {
-  console.log('myLogger fatal', msg);
+  console.log('Fastify fatal', msg);
 };
 Logger.prototype.warn = function (msg) {
-  console.log('myLogger warn', msg);
+  console.log('Fastify warn', msg);
 };
 Logger.prototype.trace = function (msg) {
-  console.log('myLogger trace', msg);
+  console.log('Fastify trace', msg);
 };
 Logger.prototype.child = function () {
   return new Logger();
