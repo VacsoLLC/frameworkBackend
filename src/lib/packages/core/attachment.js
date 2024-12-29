@@ -9,7 +9,7 @@ import path from 'path';
 import {createWriteStream} from 'fs';
 import {mkdir} from 'fs/promises';
 import {pipeline} from 'stream/promises';
-import { Readable } from 'stream';
+import {Readable} from 'stream';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -20,6 +20,7 @@ export default class Attachment extends Table {
       name: 'Attachment',
       className: 'attachment',
       index: false, // TODO add attachment indexing in the future
+      createDisable: true,
       ...args,
       options: {
         id: {
@@ -108,7 +109,9 @@ export default class Attachment extends Table {
     const record = await this.recordGet({recordId});
 
     if (!record) {
-      throw new Error('Record not found');
+      req.res.status(404);
+      req.res.send('File not found');
+      return;
     }
 
     // user must have access to the parent record to access attachments.

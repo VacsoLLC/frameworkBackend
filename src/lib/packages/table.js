@@ -22,6 +22,7 @@ export default class Table extends Base {
     this.isTable = true;
 
     this.knex = null;
+    this.createDisable = args[0].createDisable || false;
     this.columns = {};
     this.parents = [];
     this.children = [];
@@ -143,6 +144,7 @@ export default class Table extends Base {
         row: 'id',
       },
       tabName: 'Audit',
+      tabOrder: 99999,
     });
 
     this.childAdd({
@@ -155,6 +157,7 @@ export default class Table extends Base {
         row: 'id',
       },
       tabName: 'Views',
+      tabOrder: 99998,
     });
 
     await this.runFunctions(this.initPreFunctions);
@@ -271,6 +274,7 @@ export default class Table extends Base {
           [parent.column]: 'id',
         },
         tabName: parent.tabName,
+        tabOrder: parent.tabOrder,
       });
     }
   }
@@ -347,6 +351,7 @@ export default class Table extends Base {
     columnName = null,
     displayColumns = [],
     tabName = this.table,
+    tabOrder = 1000,
     defaultValue,
     hiddenCreate,
     queryModifier = false, // Can be used to modify the query for references before it is run. Useful for filtering in fancy ways.
@@ -392,6 +397,7 @@ export default class Table extends Base {
       table: referencedTableName,
       db: referencedDb,
       column: columnName,
+      tabOrder,
       tabName,
     });
   }
@@ -517,6 +523,24 @@ export default class Table extends Base {
     return query;
   }
 
+  _addTableToWhere(where, table) {
+    if (Array.isArray(where)) {
+      if (!where[0].includes('.')) {
+        where[0] = `${table}.${where[0]}`;
+      }
+    } else if (typeof where == 'object') {
+      for (const key in where) {
+        if (key.includes('.')) {
+          continue;
+        }
+
+        where[`${table}.${key}`] = where[key];
+        delete where[key];
+      }
+    }
+    return where;
+  }
+
   async rowsGet({
     where,
     sortField = 'id',
@@ -540,13 +564,15 @@ export default class Table extends Base {
     if (Array.isArray(where)) {
       for (const whereClause of where) {
         if (Array.isArray(whereClause)) {
-          query = query.where(...whereClause);
+          query = query.where(
+            ...this._addTableToWhere(whereClause, this.table),
+          );
         } else {
-          query = query.where(whereClause);
+          query = query.where(this._addTableToWhere(whereClause, this.table));
         }
       }
     } else if (where) {
-      query = query.where(where);
+      query = query.where(this._addTableToWhere(where, this.table));
     }
 
     // code based filters
@@ -619,6 +645,9 @@ export default class Table extends Base {
 
     return {
       name: this.name,
+      viewRecord: this.viewRecord,
+      viewTable: this.viewTable, // not yet used. maybe. I dont know.
+      createDisable: this.createDisable,
       readOnly,
       schema,
     };

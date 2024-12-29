@@ -106,7 +106,26 @@ export default class Column {
     required = false, // Field is required
     validations = [], // Array of functions to validate the field
     unique = false, // Field must be unique
+
+    filterTableAlias = null, // The alias of the table to filter on. Will be auto populated
+    filterColumn = null, // The column of the table to filter on. Will be auto populated
   }) {
+    if (!join) {
+      if (!filterTableAlias) {
+        filterTableAlias = thisTable.table;
+      }
+      if (!filterColumn) {
+        filterColumn = columnName;
+      }
+    } else {
+      if (!filterTableAlias) {
+        filterTableAlias = joinAlias;
+      }
+      if (!filterColumn) {
+        filterColumn = joinDisplay;
+      }
+    }
+
     if (!order) {
       order = 10000 + (Object.keys(thisTable.columns).length + 1) * 100;
     }
@@ -205,6 +224,9 @@ export default class Column {
     this.required = required;
     this.validations = validations;
     this.unique = unique;
+
+    this.filterTableAlias = filterTableAlias;
+    this.filterColumn = filterColumn;
   }
 
   async getDefaultValue({req}) {

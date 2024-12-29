@@ -2,7 +2,7 @@ import Table from '../table.js';
 
 export default class Page extends Table {
   constructor(args) {
-    super({name: 'Page', className: 'page', ...args});
+    super({name: 'Page', className: 'page', viewRecord: 'page', ...args});
 
     this.columnAdd({
       columnName: 'title',
@@ -20,7 +20,8 @@ export default class Page extends Table {
           friendlyName: 'Parent',
         },
       ],
-      tabName: 'Children',
+      tabName: 'Child pages',
+      tabOrder: 1,
     });
 
     this.columnAdd({
@@ -40,6 +41,21 @@ export default class Page extends Table {
         row: 'id',
       },
       tabName: 'Attachments',
+      tabOrder: 99997,
+    });
+
+    this.actionAdd({
+      label: 'Attach File(s)',
+      type: 'attach',
+    });
+
+    this.addMenuItem({
+      label: 'Pages',
+      parent: 'Admin',
+      icon: 'NotebookText',
+      navigate: '/core/page',
+      order: 99,
+      view: 'pages',
     });
   }
 }
