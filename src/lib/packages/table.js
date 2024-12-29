@@ -22,6 +22,7 @@ export default class Table extends Base {
     this.isTable = true;
 
     this.knex = null;
+    this.createDisable = args[0].createDisable || false;
     this.columns = {};
     this.parents = [];
     this.children = [];
@@ -143,6 +144,7 @@ export default class Table extends Base {
         row: 'id',
       },
       tabName: 'Audit',
+      tabOrder: 99999,
     });
 
     this.childAdd({
@@ -155,6 +157,7 @@ export default class Table extends Base {
         row: 'id',
       },
       tabName: 'Views',
+      tabOrder: 99998,
     });
 
     await this.runFunctions(this.initPreFunctions);
@@ -271,6 +274,7 @@ export default class Table extends Base {
           [parent.column]: 'id',
         },
         tabName: parent.tabName,
+        tabOrder: parent.tabOrder,
       });
     }
   }
@@ -324,7 +328,7 @@ export default class Table extends Base {
    *
    * @throws {Error} If both onCreateOrUpdate and onCreate or onUpdate are set.
    */
-  async columnAdd(args) {
+  columnAdd(args) {
     if (this.columns[args.columnName]) {
       throw new Error(
         `Column ${args.columnName} already exists in table ${this.table}!`,
@@ -340,13 +344,14 @@ export default class Table extends Base {
     this.manyToMany.push(args);
   }
 
-  async manyToOneAdd({
+  manyToOneAdd({
     referencedTableName,
     referencedDb = this.db,
     referenceCreate = false, // If true, shows a create button next to the reference field
     columnName = null,
     displayColumns = [],
     tabName = this.table,
+    tabOrder = 1000,
     defaultValue,
     hiddenCreate,
     queryModifier = false, // Can be used to modify the query for references before it is run. Useful for filtering in fancy ways.
@@ -354,8 +359,9 @@ export default class Table extends Base {
   }) {
     columnName = columnName || `${referencedTableName}_id`;
 
+    /* Multiple display columns has not been implemented yet...
     for (const columnData of displayColumns) {
-      await this.columnAdd({
+      this.columnAdd({
         columnType: 'string', // Assuming 'string' as a default type for display columns
         table: referencedTableName,
         tableAlias: columnName,
@@ -367,13 +373,17 @@ export default class Table extends Base {
         rolesWrite: args.rolesWrite,
       });
     }
+      */
 
-    await this.columnAdd({
+    this.columnAdd({
       columnName,
       columnType: 'integer',
       display: false,
       join: referencedTableName,
       joinDb: referencedDb,
+      joinAlias: columnName,
+      joinDisplay: displayColumns[0].columnName,
+      joinDisplayAlias: columnName + '_' + displayColumns[0].columnName,
       friendlyName: displayColumns[0].friendlyName,
       friendlyColumnName: displayColumns[0].columnName,
       defaultValue,
@@ -387,6 +397,7 @@ export default class Table extends Base {
       table: referencedTableName,
       db: referencedDb,
       column: columnName,
+      tabOrder,
       tabName,
     });
   }
@@ -454,10 +465,10 @@ export default class Table extends Base {
 
       if (column.join) {
         query = query.leftJoin(
-          `${column.joinDb}.${column.join} as ${columnName}`,
+          `${column.joinDb}.${column.join} as ${column.joinAlias}`,
           `${this.table}.${columnName}`,
           '=',
-          `${columnName}.id`,
+          `${column.joinAlias}.id`,
         );
       }
     }
@@ -498,11 +509,36 @@ export default class Table extends Base {
       selectedColumns.push(
         `${column.tableAlias}.${column.actualColumnName} as ${columnName}`,
       );
+
+      if (column.join) {
+        console.log('Joining:', column);
+        selectedColumns.push(
+          `${column.joinAlias}.${column.joinDisplay} as ${column.joinDisplayAlias}`,
+        );
+      }
     }
 
     query.select(selectedColumns);
 
     return query;
+  }
+
+  _addTableToWhere(where, table) {
+    if (Array.isArray(where)) {
+      if (!where[0].includes('.')) {
+        where[0] = `${table}.${where[0]}`;
+      }
+    } else if (typeof where == 'object') {
+      for (const key in where) {
+        if (key.includes('.')) {
+          continue;
+        }
+
+        where[`${table}.${key}`] = where[key];
+        delete where[key];
+      }
+    }
+    return where;
   }
 
   async rowsGet({
@@ -528,13 +564,15 @@ export default class Table extends Base {
     if (Array.isArray(where)) {
       for (const whereClause of where) {
         if (Array.isArray(whereClause)) {
-          query = query.where(...whereClause);
+          query = query.where(
+            ...this._addTableToWhere(whereClause, this.table),
+          );
         } else {
-          query = query.where(whereClause);
+          query = query.where(this._addTableToWhere(whereClause, this.table));
         }
       }
     } else if (where) {
-      query = query.where(where);
+      query = query.where(this._addTableToWhere(where, this.table));
     }
 
     // code based filters
@@ -607,6 +645,9 @@ export default class Table extends Base {
 
     return {
       name: this.name,
+      viewRecord: this.viewRecord,
+      viewTable: this.viewTable, // not yet used. maybe. I dont know.
+      createDisable: this.createDisable,
       readOnly,
       schema,
     };

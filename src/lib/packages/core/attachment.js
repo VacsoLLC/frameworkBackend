@@ -9,17 +9,18 @@ import path from 'path';
 import {createWriteStream} from 'fs';
 import {mkdir} from 'fs/promises';
 import {pipeline} from 'stream/promises';
-import { Readable } from 'stream';
+import {Readable} from 'stream';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-export default class Audit extends Table {
+export default class Attachment extends Table {
   constructor(args) {
     super({
       name: 'Attachment',
       className: 'attachment',
       index: false, // TODO add attachment indexing in the future
+      createDisable: true,
       ...args,
       options: {
         id: {
@@ -108,7 +109,18 @@ export default class Audit extends Table {
     const record = await this.recordGet({recordId});
 
     if (!record) {
-      throw new Error('Record not found');
+      req.res.status(404);
+      req.res.send('File not found');
+      return;
+    }
+
+    // user must have access to the parent record to access attachments.
+    const parentRecord = await this.packages[record.db][record.table].recordGet(
+      {recordId: record.row, req},
+    );
+
+    if (!parentRecord) {
+      throw new Error('Record not fount');
     }
 
     try {
@@ -155,8 +167,19 @@ export default class Audit extends Table {
       }
     }
 
+    // user must have access to the parent record to access attachments.
+    const parentRecord = await this.packages[fields.db][fields.table].recordGet(
+      {recordId: fields.row, req},
+    );
+
+    if (!parentRecord) {
+      throw new Error('Access Denied');
+    }
+
+    const ids = [];
+
     for (const file of files) {
-      await this.recordCreate({
+      const result = await this.recordCreate({
         data: {
           filename: file.name,
           storedFilename: file.stored,
@@ -168,9 +191,10 @@ export default class Audit extends Table {
         },
         req,
       });
+      ids.push(result.id);
     }
 
-    return {};
+    return {ids, id: ids[0]};
   }
 
   async addFilesToRecord({inputFiles, db, table, row, req}) {

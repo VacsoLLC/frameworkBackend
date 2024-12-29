@@ -1,11 +1,21 @@
 // All framework classes must extend base. It provides a common interface.
 export default class Base {
-  constructor({ className, packageName, packages, config, options = {} }) {
+  constructor({
+    className,
+    packageName,
+    packages,
+    config,
+    viewRecord = 'default',
+    viewTable = 'default',
+    options = {},
+  }) {
     this.className = className;
     this.packageName = packageName;
     this.packages = packages;
     this.config = config;
     this.options = options;
+    this.viewRecord = viewRecord;
+    this.viewTable = viewTable; // Not used yet.
     this.rolesWrite = []; // Default roles required to execute methods in this class. The user must have ANY of these roles. This is role names and not IDs. If blank any authenticated user can execute.
     this.rolesRead = []; // Default roles required to execute methods that are flagged as read only. The user must have ANY of these roles. This is role names and not IDs. This is only used if the rolesWrite is not blank.
     this.rolesAllWrite = []; // This is a combination of all the roles that can possibly write to this class. This is used by the table class since a user can be given access to a single column.
@@ -46,7 +56,7 @@ export default class Base {
     method,
     validationFunction = null,
     overwrite = false,
-    authRequired = this.authenticationRequired
+    authRequired = this.authenticationRequired,
   ) {
     if (!id) {
       throw new Error('Method id is required.');
@@ -58,7 +68,7 @@ export default class Base {
 
     if (this.methods[id] && overwrite === false) {
       throw new Error(
-        `Method id ${id} was being overwritten. If you want to overwrite, set the overwrite flag to true.`
+        `Method id ${id} was being overwritten. If you want to overwrite, set the overwrite flag to true.`,
       );
     }
 
@@ -69,7 +79,7 @@ export default class Base {
     };
   }
 
-  methodAuthRequired({ req, id }) {
+  methodAuthRequired({req, id}) {
     if (this.methods[id].authRequired === false) {
       return false;
     }
@@ -77,7 +87,7 @@ export default class Base {
     return true;
   }
 
-  async methodValidate({ req, id, args }) {
+  async methodValidate({req, id, args}) {
     if (this.methods[id].validationFunction) {
       const errors = await this.methods[id].validationFunction({
         req,
@@ -95,13 +105,13 @@ export default class Base {
       return null;
     }
 
-    const errors = await this.methodValidate({ req, id, args });
+    const errors = await this.methodValidate({req, id, args});
 
     if (errors) {
       throw new Error(errors.join(' '));
     }
 
-    return await this.methods[id].method.call(this, { req, ...args });
+    return await this.methods[id].method.call(this, {req, ...args});
   }
 
   methodList(req, id, args) {
@@ -160,7 +170,7 @@ export default class Base {
       menuRoles = this.combineArrays(
         menuRoles,
         this.rolesWrite,
-        this.rolesRead
+        this.rolesRead,
       );
     }
 
@@ -178,6 +188,7 @@ export default class Base {
       table: this.className,
       db: this.packageName,
       navigate: `/${this.packageName}/${this.className}`, ///${items[item].db}/${items[item].table}
+      view: null,
 
       // User Provided Values
       ...menuItem,
@@ -189,7 +200,7 @@ export default class Base {
     this.menuItems.push(newMenuItem);
   }
 
-  async authorized({ req, action }) {
+  async authorized({req, action}) {
     if (this.rolesAllWrite.length == 0) {
       // No roles required. Anyone can access this class.
       return true;
