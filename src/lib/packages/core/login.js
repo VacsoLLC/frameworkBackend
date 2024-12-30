@@ -4,14 +4,16 @@ import User from './login/user.js';
 
 export default class Login extends Base {
   constructor(args) {
-    super({ className: 'login', ...args });
+    super({className: 'login', ...args});
     this.authenticationRequired = false;
     this.methodAdd('getToken', this.getToken);
+    this.methodAdd('forgotPassword', this.forgotPassword);
+    this.methodAdd('resetPassword', this.resetPassword);
   }
 
   // TODO: add rate limiting to this function and authenticateUser to prevent brute force attacks
-  async getToken({ email, password }) {
-    const user = await this.authenticateUser({ email, password });
+  async getToken({email, password}) {
+    const user = await this.authenticateUser({email, password});
 
     if (!user) {
       console.log('Authentication failed');
@@ -20,14 +22,26 @@ export default class Login extends Base {
     }
 
     console.log('Authentication successful');
-    const token = this._createToken({ user });
+    const token = this._createToken({user});
     return {
       message: 'Authentication successful',
       token,
     };
   }
 
-  async authenticateUser({ email, password }) {
+  async forgotPassword({email, req}) {
+    return this.packages.core.user.generatePasswordResetToken({email, req});
+  }
+
+  async resetPassword({token, password, req}) {
+    return this.packages.core.user.resetForgottenPassword({
+      token,
+      password,
+      req,
+    });
+  }
+
+  async authenticateUser({email, password}) {
     console.log('Logging in', email);
 
     const user = await this.packages.core.user.auth(email, password);
@@ -41,11 +55,11 @@ export default class Login extends Base {
     };
   }
 
-  _createToken({ user }) {
+  _createToken({user}) {
     return jwt.sign(user, this.config.token.secret, this.config.token.options);
   }
 
-  verifyToken({ token }) {
+  verifyToken({token}) {
     return jwt.verify(token, this.config.token.secret);
   }
 
@@ -55,10 +69,10 @@ export default class Login extends Base {
    * @param {string} options.token - The token to verify and retrieve user information from.
    * @returns {User|boolean} - The user object if the token is verified successfully, otherwise false.
    */
-  userFromToken({ token }) {
+  userFromToken({token}) {
     try {
       // Verify the token
-      const verified = this.verifyToken({ token });
+      const verified = this.verifyToken({token});
       console.log('Verified user token.', verified);
       const user = new User({
         ...verified,

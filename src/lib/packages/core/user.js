@@ -1,5 +1,8 @@
+import { systemRequest } from '../../../util.js';
 import Table from '../table.js';
 import bcrypt from 'bcrypt';
+
+const EXPIRY_IN_MINUTES = 60;
 
 export default class UserTable extends Table {
   constructor(args) {
@@ -31,6 +34,20 @@ export default class UserTable extends Table {
       friendlyName: 'Password',
       columnType: 'password',
       helpText: 'The password of the user',
+      hidden: true,
+    });
+
+    this.columnAdd({
+      columnName: 'passwordResetToken',
+      friendlyName: 'Password Reset Token',
+      columnType: 'string',
+      hidden: true,
+    });
+
+    this.columnAdd({
+      columnName: 'passwordResetExpiry',
+      friendlyName: 'Password Reset Expiry',
+      columnType: 'datetime',
       hidden: true,
     });
 
@@ -155,6 +172,7 @@ export default class UserTable extends Table {
     }); //
 
     this.methodAdd('findUserByPhoneNumber', this.findUserByPhoneNumber);
+    // this.methodAdd('generatePasswordResetToken', this.generatePasswordResetToken);
   }
 
   async findUserByPhoneNumber({recordId, req}) {
@@ -218,6 +236,64 @@ export default class UserTable extends Table {
       },
       req,
     });
+  }
+
+  async resetForgottenPassword({token, password, req}) {
+    const user = await this.get({
+      where: {passwordResetToken: token},
+    })
+
+    if (!user) {
+      throw new Error('Invalid token');
+    }
+    const currentTime = new Date().getTime();
+    if(user.passwordResetExpiry < currentTime) {
+      throw new Error('Token expired');
+    }
+
+    return this.recordUpdate({
+      recordId: user.id,
+      data: {
+        password,
+      },
+      req: systemRequest(this),
+      audit: false,
+    });
+  }
+
+  async generatePasswordResetToken({email, req}) {
+    const user = await this.get({
+      where: {email: email.toLowerCase(), loginAllowed: true},
+    });
+    if (!user) {
+      throw new Error('User not found');
+    }
+    const token = this.generatePassword({length:10})
+    const expiry = new Date().getTime() + EXPIRY_IN_MINUTES * 60 * 1000;
+
+    const emailContent = {
+      body: `Click the link below to reset your password:\n\nhttps://localhost:5173/reset-password?token=${token} \n\nThis link will expire in 1 hour.`,
+      subject: 'Link to reset the password',
+      to: user.email,
+    };
+
+    const results = await this.packages.core.email.sendEmail({
+      email: emailContent,
+      provider: this.config.email.defaultMailbox,
+    });
+    if (results) {
+      await this.recordUpdate({
+        recordId: user.id,
+        data: {
+          passwordResetToken: token,
+          passwordResetExpiry: expiry,
+        },
+        req,
+        audit: false,
+      });
+      return {message: 'Password reset token generated'};
+    }
+    return {message: 'Failed to generate password reset token'};
   }
 
   async auth(email, password) {
