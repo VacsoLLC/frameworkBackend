@@ -1,3 +1,4 @@
+import path from 'path';
 import { systemRequest } from '../../../util.js';
 import Table from '../table.js';
 import bcrypt from 'bcrypt';
@@ -262,17 +263,30 @@ export default class UserTable extends Table {
   }
 
   async generatePasswordResetToken({email, req}) {
+    const {expiryTime, enabled} = this.config.forgotPassword
+
+    if(!enabled) {
+      throw new Error('Please contact support');
+    }
+    
     const user = await this.get({
       where: {email: email.toLowerCase(), loginAllowed: true},
     });
+
     if (!user) {
       throw new Error('User not found');
     }
-    const token = this.generatePassword({length:10})
-    const expiry = new Date().getTime() + EXPIRY_IN_MINUTES * 60 * 1000;
+
+    const token = crypto.randomUUID()
+    const expiry = new Date().getTime() + expiryTime * 60 * 1000;
+
+    const emailBodyTemplate = await this.packages.core.email.compileTemplate(path.join(process.cwd(), 'src', 'db','ticketing','ticket','passwordResetWithLinkEmailBody.hbs'));
 
     const emailContent = {
-      body: `Click the link below to reset your password:\n\nhttps://localhost:5173/reset-password?token=${token} \n\nThis link will expire in 1 hour.`,
+      body: emailBodyTemplate({
+        resetLink: `https://localhost:5173/reset-password?token=${token}`,
+        expiry: '1 hour'
+      }),
       subject: 'Link to reset the password',
       to: user.email,
     };
@@ -281,6 +295,7 @@ export default class UserTable extends Table {
       email: emailContent,
       provider: this.config.email.defaultMailbox,
     });
+
     if (results) {
       await this.recordUpdate({
         recordId: user.id,

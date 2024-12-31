@@ -7,6 +7,7 @@ import EmailProviders from './email/providers/index.js';
 
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { clouddebugger } from 'googleapis/build/src/apis/clouddebugger/index.js';
 
 export default class Email extends Base {
   constructor(args) {
@@ -38,6 +39,7 @@ export default class Email extends Base {
     this.templates = {};
 
     const __dirname = path.dirname(fileURLToPath(import.meta.url));
+    console.log('dirname', __dirname);
 
     for (const provider of Object.values(this.mailboxes)) {
       await provider.init();
