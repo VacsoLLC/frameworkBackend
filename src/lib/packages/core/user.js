@@ -3,8 +3,7 @@ import {systemRequest} from '../../../util.js';
 import Table from '../table.js';
 import bcrypt from 'bcrypt';
 import {fileURLToPath} from 'url';
-
-const EXPIRY_IN_MINUTES = 60;
+import humanizeDuration from 'humanize-duration';
 
 export default class UserTable extends Table {
   constructor(args) {
@@ -294,7 +293,7 @@ export default class UserTable extends Table {
     const emailContent = {
       body: emailBodyTemplate({
         resetLink: `${baseURL ?? 'https://localhost:5173'}/reset-password?token=${token}`,
-        expiry: '1 hour',
+        expiry: humanizeDuration(expiryTime * 60 * 1000),
       }),
       subject: 'Link to reset the password',
       to: user.email,
