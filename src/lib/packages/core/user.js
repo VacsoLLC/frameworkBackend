@@ -1,5 +1,9 @@
+import path from 'path';
+import {systemRequest} from '../../../util.js';
 import Table from '../table.js';
 import bcrypt from 'bcrypt';
+import {fileURLToPath} from 'url';
+import humanizeDuration from 'humanize-duration';
 
 export default class UserTable extends Table {
   constructor(args) {
@@ -31,6 +35,20 @@ export default class UserTable extends Table {
       friendlyName: 'Password',
       columnType: 'password',
       helpText: 'The password of the user',
+      hidden: true,
+    });
+
+    this.columnAdd({
+      columnName: 'passwordResetToken',
+      friendlyName: 'Password Reset Token',
+      columnType: 'string',
+      hidden: true,
+    });
+
+    this.columnAdd({
+      columnName: 'passwordResetExpiry',
+      friendlyName: 'Password Reset Expiry',
+      columnType: 'datetime',
       hidden: true,
     });
 
@@ -155,6 +173,7 @@ export default class UserTable extends Table {
     }); //
 
     this.methodAdd('findUserByPhoneNumber', this.findUserByPhoneNumber);
+    // this.methodAdd('generatePasswordResetToken', this.generatePasswordResetToken);
   }
 
   async findUserByPhoneNumber({recordId, req}) {
@@ -218,6 +237,89 @@ export default class UserTable extends Table {
       },
       req,
     });
+  }
+
+  async resetForgottenPassword({token, password, req}) {
+    const user = await this.get({
+      where: {passwordResetToken: token},
+    });
+
+    if (!user) {
+      throw new Error('Invalid token');
+    }
+    const currentTime = new Date().getTime();
+    if (user.passwordResetExpiry < currentTime) {
+      throw new Error('Token expired');
+    }
+
+    return this.recordUpdate({
+      recordId: user.id,
+      data: {
+        password,
+      },
+      req: systemRequest(this),
+      audit: false,
+    });
+  }
+
+  async generatePasswordResetToken({email, req}) {
+    const {expiryTime, enabled, baseURL} = this.config.forgotPassword;
+
+    if (!enabled) {
+      throw new Error('Password reset is disabled. Please contact support.');
+    }
+
+    const user = await this.get({
+      where: {email: email.toLowerCase(), loginAllowed: true},
+    });
+
+    if (!user) {
+      // We purposely send a positive response. This is to prevent users from knowing if an email is in the system or not.
+      return {
+        message:
+          'If email address was found, a password reset link has been sent.',
+      };
+    }
+
+    const token = crypto.randomUUID();
+    const expiry = new Date().getTime() + expiryTime * 60 * 1000;
+
+    const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+    const emailBodyTemplate = await this.packages.core.email.compileTemplate(
+      path.join(__dirname, 'user', 'passwordResetWithLinkEmailBody.hbs'),
+    );
+
+    const emailContent = {
+      body: emailBodyTemplate({
+        resetLink: `${baseURL ?? 'https://localhost:5173'}/reset-password?token=${token}`,
+        expiry: humanizeDuration(expiryTime * 60 * 1000),
+      }),
+      subject: 'Link to reset the password',
+      to: user.email,
+    };
+
+    const results = await this.packages.core.email.sendEmail({
+      email: emailContent,
+      provider: this.config.email.defaultMailbox,
+    });
+
+    if (results) {
+      await this.recordUpdate({
+        recordId: user.id,
+        data: {
+          passwordResetToken: token,
+          passwordResetExpiry: expiry,
+        },
+        req,
+        audit: false,
+      });
+      return {
+        message:
+          'If email address was found, a password reset link has been sent.',
+      };
+    }
+    return {message: 'Failed to generate password reset token'};
   }
 
   async auth(email, password) {

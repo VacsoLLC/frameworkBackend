@@ -6,11 +6,11 @@ import Handlebars from 'handlebars';
 import EmailProviders from './email/providers/index.js';
 
 import path from 'path';
-import { fileURLToPath } from 'url';
+import {fileURLToPath} from 'url';
 
 export default class Email extends Base {
   constructor(args) {
-    super({ className: 'email', ...args });
+    super({className: 'email', ...args});
 
     this.mailboxes = {};
 
@@ -45,7 +45,7 @@ export default class Email extends Base {
     return;
   }
 
-  async sendEmail({ email, provider = this.config.email.defaultMailbox }) {
+  async sendEmail({email, provider = this.config.email.defaultMailbox}) {
     if (!provider) {
       throw new Error(`No email provider provided`);
     }

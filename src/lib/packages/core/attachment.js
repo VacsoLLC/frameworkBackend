@@ -2,7 +2,7 @@ import Table from '../table.js';
 import {systemUser} from '../../../util.js';
 import {fileURLToPath} from 'url';
 import {dirname, join} from 'path';
-import {clouddebugger} from 'googleapis/build/src/apis/clouddebugger/index.js';
+
 import fs from 'fs';
 import {randomUUID} from 'crypto';
 import path from 'path';
