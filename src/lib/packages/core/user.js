@@ -263,12 +263,12 @@ export default class UserTable extends Table {
   }
 
   async generatePasswordResetToken({email, req}) {
-    const {expiryTime, enabled} = this.config.forgotPassword
+    const {expiryTime, enabled,baseURL} = this.config.forgotPassword
 
     if(!enabled) {
       throw new Error('Please contact support');
     }
-    
+
     const user = await this.get({
       where: {email: email.toLowerCase(), loginAllowed: true},
     });
@@ -284,7 +284,7 @@ export default class UserTable extends Table {
 
     const emailContent = {
       body: emailBodyTemplate({
-        resetLink: `https://localhost:5173/reset-password?token=${token}`,
+        resetLink: `${baseURL ?? 'https://localhost:5173'}/reset-password?token=${token}`,
         expiry: '1 hour'
       }),
       subject: 'Link to reset the password',
