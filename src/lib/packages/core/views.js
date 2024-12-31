@@ -2,7 +2,6 @@ import Table from '../table.js';
 import {systemUser} from '../../../util.js';
 import {fileURLToPath} from 'url';
 import {dirname, join} from 'path';
-import {clouddebugger} from 'googleapis/build/src/apis/clouddebugger/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

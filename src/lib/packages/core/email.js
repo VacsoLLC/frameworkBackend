@@ -6,12 +6,11 @@ import Handlebars from 'handlebars';
 import EmailProviders from './email/providers/index.js';
 
 import path from 'path';
-import { fileURLToPath } from 'url';
-import { clouddebugger } from 'googleapis/build/src/apis/clouddebugger/index.js';
+import {fileURLToPath} from 'url';
 
 export default class Email extends Base {
   constructor(args) {
-    super({ className: 'email', ...args });
+    super({className: 'email', ...args});
 
     this.mailboxes = {};
 
@@ -39,7 +38,6 @@ export default class Email extends Base {
     this.templates = {};
 
     const __dirname = path.dirname(fileURLToPath(import.meta.url));
-    console.log('dirname', __dirname);
 
     for (const provider of Object.values(this.mailboxes)) {
       await provider.init();
@@ -47,7 +45,7 @@ export default class Email extends Base {
     return;
   }
 
-  async sendEmail({ email, provider = this.config.email.defaultMailbox }) {
+  async sendEmail({email, provider = this.config.email.defaultMailbox}) {
     if (!provider) {
       throw new Error(`No email provider provided`);
     }
