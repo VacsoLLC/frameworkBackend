@@ -1,7 +1,8 @@
 import path from 'path';
-import { systemRequest } from '../../../util.js';
+import {systemRequest} from '../../../util.js';
 import Table from '../table.js';
 import bcrypt from 'bcrypt';
+import {fileURLToPath} from 'url';
 
 const EXPIRY_IN_MINUTES = 60;
 
@@ -242,13 +243,13 @@ export default class UserTable extends Table {
   async resetForgottenPassword({token, password, req}) {
     const user = await this.get({
       where: {passwordResetToken: token},
-    })
+    });
 
     if (!user) {
       throw new Error('Invalid token');
     }
     const currentTime = new Date().getTime();
-    if(user.passwordResetExpiry < currentTime) {
+    if (user.passwordResetExpiry < currentTime) {
       throw new Error('Token expired');
     }
 
@@ -263,10 +264,10 @@ export default class UserTable extends Table {
   }
 
   async generatePasswordResetToken({email, req}) {
-    const {expiryTime, enabled,baseURL} = this.config.forgotPassword
+    const {expiryTime, enabled, baseURL} = this.config.forgotPassword;
 
-    if(!enabled) {
-      throw new Error('Please contact support');
+    if (!enabled) {
+      throw new Error('Password reset is disabled. Please contact support.');
     }
 
     const user = await this.get({
@@ -274,18 +275,26 @@ export default class UserTable extends Table {
     });
 
     if (!user) {
-      throw new Error('User not found');
+      // We purposely send a positive response. This is to prevent users from knowing if an email is in the system or not.
+      return {
+        message:
+          'If email address was found, a password reset link has been sent.',
+      };
     }
 
-    const token = crypto.randomUUID()
+    const token = crypto.randomUUID();
     const expiry = new Date().getTime() + expiryTime * 60 * 1000;
 
-    const emailBodyTemplate = await this.packages.core.email.compileTemplate(path.join(process.cwd(), 'src', 'db','ticketing','ticket','passwordResetWithLinkEmailBody.hbs'));
+    const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+    const emailBodyTemplate = await this.packages.core.email.compileTemplate(
+      path.join(__dirname, 'user', 'passwordResetWithLinkEmailBody.hbs'),
+    );
 
     const emailContent = {
       body: emailBodyTemplate({
         resetLink: `${baseURL ?? 'https://localhost:5173'}/reset-password?token=${token}`,
-        expiry: '1 hour'
+        expiry: '1 hour',
       }),
       subject: 'Link to reset the password',
       to: user.email,
@@ -306,7 +315,10 @@ export default class UserTable extends Table {
         req,
         audit: false,
       });
-      return {message: 'Password reset token generated'};
+      return {
+        message:
+          'If email address was found, a password reset link has been sent.',
+      };
     }
     return {message: 'Failed to generate password reset token'};
   }
