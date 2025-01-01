@@ -7,21 +7,21 @@ import humanizeDuration from 'humanize-duration';
 
 import {RateLimiterMemory} from 'rate-limiter-flexible';
 
-const limiterFailedLoginUser = new RateLimiterMemory({
-  keyPrefix: 'limiterFailedLoginUser',
-  points: 5,
-  duration: 60 * 5, // Store number for five minutes
-});
-
-const limiterFailedLoginIp = new RateLimiterMemory({
-  keyPrefix: 'limiterFailedLoginIp',
-  points: 10,
-  duration: 60 * 5, // Store number for five minutes
-});
-
 export default class UserTable extends Table {
   constructor(args) {
     super({name: 'User', className: 'user', ...args});
+
+    this.limiterFailedLoginUser = new RateLimiterMemory({
+      keyPrefix: 'limiterFailedLoginUser',
+      points: this.config.limiter?.failedLogin?.user?.points || 5,
+      duration: this.config.limiter?.failedLogin?.user?.duration || 60 * 5, // Store number for five minutes
+    });
+
+    this.limiterFailedLoginIp = new RateLimiterMemory({
+      keyPrefix: 'limiterFailedLoginIp',
+      points: this.config.limiter?.failedLogin?.ip?.points || 10,
+      duration: this.config.limiter?.failedLogin?.ip?.duration || 60 * 5, // Store number for five minutes
+    });
 
     this.rolesWriteAdd('Admin');
     this.rolesDeleteAdd('Admin');
@@ -337,15 +337,26 @@ export default class UserTable extends Table {
   }
 
   async auth(email, password, req) {
-    const limiterUser = await limiterFailedLoginUser.get(email);
-    const limiterIp = await limiterFailedLoginIp.get(req.ip);
+    const limiterUser = await this.limiterFailedLoginUser.get(email);
+    const limiterIp = await this.limiterFailedLoginIp.get(req.ip);
 
-    if (
-      (limiterUser !== null && limiterUser.remainingPoints <= 0) ||
-      (limiterIp !== null && limiterIp.remainingPoints <= 0)
-    ) {
+    if (limiterIp !== null && limiterIp.remainingPoints <= 0) {
       // Block for 15 minutes. We do this manually becuase this library only blocks after you try to consume too many. Also this will reset the failure timer each over limit try.
-      limiterFailedLoginUser.block(email, 60 * 15);
+      this.limiterFailedLoginUser.block(
+        email,
+        this.config.limiter?.failedLogin?.user?.block || 60 * 15,
+      );
+      throw new Error(
+        'Too many failed login attempts. Please try again later.',
+      );
+    }
+
+    if (limiterUser !== null && limiterUser.remainingPoints <= 0) {
+      // Block for 15 minutes. We do this manually becuase this library only blocks after you try to consume too many. Also this will reset the failure timer each over limit try.
+      this.limiterFailedLoginUser.block(
+        email,
+        this.config.limiter?.failedLogin?.block?.block || 60 * 15,
+      );
       throw new Error(
         'Too many failed login attempts. Please try again later.',
       );
@@ -359,7 +370,7 @@ export default class UserTable extends Table {
       return user;
     }
 
-    await limiterFailedLoginUser.consume(email);
+    await this.limiterFailedLoginUser.consume(email);
     return false;
   }
 

@@ -1,13 +1,14 @@
 import {RateLimiterMemory} from 'rate-limiter-flexible';
 
-const limiter = new RateLimiterMemory({
-  keyPrefix: 'limiter',
-  points: 10 * 60 * 5, // 10 points per second over 5 minutes
-  duration: 60 * 5, // Store number for five minutes
-});
-
 export default function routes(fastify, options) {
   const packages = options.packages;
+
+  const limiter = new RateLimiterMemory({
+    keyPrefix: 'limiter',
+    points: packages.config.limiter?.general?.points || 10 * 60 * 5, // 10 points per second over 5 minutes
+    duration: packages.config.limiter?.general?.duration || 60 * 5, // Store number for five minutes
+    blockDuration: packages.config.limiter?.general?.block || 60 * 5, // Block for 5 minutes
+  });
 
   fastify.addHook('onRequest', async (request, reply) => {
     const authHeader = request.headers['authorization'];
@@ -31,24 +32,24 @@ export default function routes(fastify, options) {
   });
 
   fastify.all('/:packageName/:className/:action', async (...args) => {
-    return await handlerFunction(packages, ...args);
+    return await handlerFunction(packages, limiter, ...args);
   });
 
   fastify.all(
     '/:packageName/:className/:action/:recordId',
     async (request, reply) => {
-      return await handlerFunction(packages, request, reply);
+      return await handlerFunction(packages, limiter, request, reply);
     },
   );
 }
 
-async function handlerFunction(packages, req, res) {
+async function handlerFunction(packages, limiter, req, res) {
   // Rate limit everything
   const ip = req.headers['x-forwarded-for'] || req.ip;
   try {
     const result = await limiter.consume(ip, 1);
     console.log('Remaining points: ', result.remainingPoints);
-  } catch {
+  } catch (e) {
     res.status(429);
     return {message: 'Too many requests. Try again later.'};
   }
@@ -150,7 +151,7 @@ async function handlerFunction(packages, req, res) {
       console.error(error);
       limiter.penalty(ip, 10);
       res.status(500);
-      return {message: 'Server Error', error: error.message};
+      return {message: error.message};
     }
   }
 }
