@@ -5,9 +5,23 @@ import bcrypt from 'bcrypt';
 import {fileURLToPath} from 'url';
 import humanizeDuration from 'humanize-duration';
 
+import {RateLimiterMemory} from 'rate-limiter-flexible';
+
 export default class UserTable extends Table {
   constructor(args) {
     super({name: 'User', className: 'user', ...args});
+
+    this.limiterFailedLoginUser = new RateLimiterMemory({
+      keyPrefix: 'limiterFailedLoginUser',
+      points: this.config.limiter?.failedLogin?.user?.points || 5,
+      duration: this.config.limiter?.failedLogin?.user?.duration || 60 * 5, // Store number for five minutes
+    });
+
+    this.limiterFailedLoginIp = new RateLimiterMemory({
+      keyPrefix: 'limiterFailedLoginIp',
+      points: this.config.limiter?.failedLogin?.ip?.points || 10,
+      duration: this.config.limiter?.failedLogin?.ip?.duration || 60 * 5, // Store number for five minutes
+    });
 
     this.rolesWriteAdd('Admin');
     this.rolesDeleteAdd('Admin');
@@ -322,19 +336,43 @@ export default class UserTable extends Table {
     return {message: 'Failed to generate password reset token'};
   }
 
-  async auth(email, password) {
+  async auth(email, password, req) {
+    const limiterUser = await this.limiterFailedLoginUser.get(email);
+    const limiterIp = await this.limiterFailedLoginIp.get(req.ip);
+
+    if (limiterIp !== null && limiterIp.remainingPoints <= 0) {
+      // Block for 15 minutes. We do this manually becuase this library only blocks after you try to consume too many. Also this will reset the failure timer each over limit try.
+      this.limiterFailedLoginIp.block(
+        req.ip,
+        this.config.limiter?.failedLogin?.ip?.block || 60 * 15,
+      );
+      throw new Error(
+        'Too many failed login attempts. Please try again later.',
+      );
+    }
+
+    if (limiterUser !== null && limiterUser.remainingPoints <= 0) {
+      // Block for 15 minutes. We do this manually becuase this library only blocks after you try to consume too many. Also this will reset the failure timer each over limit try.
+      this.limiterFailedLoginUser.block(
+        email,
+        this.config.limiter?.failedLogin?.user?.block || 60 * 15,
+      );
+      throw new Error(
+        'Too many failed login attempts. Please try again later.',
+      );
+    }
+
     const user = await this.get({
       where: {email: email.toLowerCase(), loginAllowed: true},
     });
-    if (!user) {
-      return false;
+
+    if (user && (await this.passwordMatch(password, user.password))) {
+      return user;
     }
 
-    if (!(await this.passwordMatch(password, user.password))) {
-      return false;
-    }
-
-    return user;
+    await this.limiterFailedLoginUser.consume(email);
+    await this.limiterFailedLoginIp.consume(req.ip);
+    return false;
   }
 
   async getUserLoginAllowed(email) {
@@ -441,4 +479,3 @@ export default class UserTable extends Table {
     return password;
   }
 }
-//this.dbs.core.user_group
