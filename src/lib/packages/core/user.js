@@ -479,4 +479,3 @@ export default class UserTable extends Table {
     return password;
   }
 }
-//this.dbs.core.user_group
