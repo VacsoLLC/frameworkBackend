@@ -342,9 +342,9 @@ export default class UserTable extends Table {
 
     if (limiterIp !== null && limiterIp.remainingPoints <= 0) {
       // Block for 15 minutes. We do this manually becuase this library only blocks after you try to consume too many. Also this will reset the failure timer each over limit try.
-      this.limiterFailedLoginUser.block(
+      this.limiterFailedLoginIp.block(
         req.ip,
-        this.config.limiter?.failedLogin?.user?.block || 60 * 15,
+        this.config.limiter?.failedLogin?.ip?.block || 60 * 15,
       );
       throw new Error(
         'Too many failed login attempts. Please try again later.',
@@ -355,7 +355,7 @@ export default class UserTable extends Table {
       // Block for 15 minutes. We do this manually becuase this library only blocks after you try to consume too many. Also this will reset the failure timer each over limit try.
       this.limiterFailedLoginUser.block(
         email,
-        this.config.limiter?.failedLogin?.block?.block || 60 * 15,
+        this.config.limiter?.failedLogin?.user?.block || 60 * 15,
       );
       throw new Error(
         'Too many failed login attempts. Please try again later.',
