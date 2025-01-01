@@ -371,6 +371,7 @@ export default class UserTable extends Table {
     }
 
     await this.limiterFailedLoginUser.consume(email);
+    await this.limiterFailedLoginIp.consume(req.ip);
     return false;
   }
 
