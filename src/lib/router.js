@@ -1,3 +1,11 @@
+import {RateLimiterMemory} from 'rate-limiter-flexible';
+
+const limiter = new RateLimiterMemory({
+  keyPrefix: 'limiter',
+  points: 10 * 60 * 5, // 10 points per second over 5 minutes
+  duration: 60 * 5, // Store number for five minutes
+});
+
 export default function routes(fastify, options) {
   const packages = options.packages;
 
@@ -35,17 +43,29 @@ export default function routes(fastify, options) {
 }
 
 async function handlerFunction(packages, req, res) {
+  // Rate limit everything
+  const ip = req.headers['x-forwarded-for'] || req.ip;
+  try {
+    const result = await limiter.consume(ip, 1);
+    console.log('Remaining points: ', result.remainingPoints);
+  } catch {
+    res.status(429);
+    return {message: 'Too many requests. Try again later.'};
+  }
+
   if (
     !packages[req.params.packageName] ||
     !packages[req.params.packageName][req.params.className] ||
     !packages[req.params.packageName][req.params.className].methodExecute // methodExecute is provided by the Base class. Everything should have it.
   ) {
+    limiter.penalty(ip, 10);
     res.status(404);
     return {message: 'Not Found'};
   }
 
-  // If the method starts with _, return 40427614809-2b3d-4bda-b104-8cc606122912
+  // Methods that start with _ are not allowed to be called via api.
   if (req?.params?.action?.startsWith('_')) {
+    limiter.penalty(ip, 10);
     res.status(404);
     return {
       message: 'Not Found. Methods starting with _ can not be called.',
@@ -60,6 +80,7 @@ async function handlerFunction(packages, req, res) {
     }) &&
     !req.user
   ) {
+    limiter.penalty(ip, 10);
     res.status(401);
     return {message: 'Authentication Required.'};
   }
@@ -73,6 +94,7 @@ async function handlerFunction(packages, req, res) {
       action: req.params.action,
     }))
   ) {
+    limiter.penalty(ip, 10);
     res.status(403);
     return {message: 'Unauthorized.'};
   }
@@ -109,6 +131,7 @@ async function handlerFunction(packages, req, res) {
       }
 
       if (!result) {
+        limiter.penalty(ip, 10);
         res.status(404);
         return {message: 'Not Found'};
       }
@@ -125,7 +148,7 @@ async function handlerFunction(packages, req, res) {
       };
     } catch (error) {
       console.error(error);
-
+      limiter.penalty(ip, 10);
       res.status(500);
       return {message: 'Server Error', error: error.message};
     }
@@ -172,6 +195,7 @@ class Req {
     this.req = req;
     this.res = res;
     this.navigate = null;
+    this.ip = req.headers['x-forwarded-for'] || req.ip; // TODO validate this
 
     if (req.params.recordId) {
       req.record = {

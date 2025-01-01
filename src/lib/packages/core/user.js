@@ -5,6 +5,20 @@ import bcrypt from 'bcrypt';
 import {fileURLToPath} from 'url';
 import humanizeDuration from 'humanize-duration';
 
+import {RateLimiterMemory} from 'rate-limiter-flexible';
+
+const limiterFailedLoginUser = new RateLimiterMemory({
+  keyPrefix: 'limiterFailedLoginUser',
+  points: 5,
+  duration: 60 * 5, // Store number for five minutes
+});
+
+const limiterFailedLoginIp = new RateLimiterMemory({
+  keyPrefix: 'limiterFailedLoginIp',
+  points: 10,
+  duration: 60 * 5, // Store number for five minutes
+});
+
 export default class UserTable extends Table {
   constructor(args) {
     super({name: 'User', className: 'user', ...args});
@@ -322,19 +336,31 @@ export default class UserTable extends Table {
     return {message: 'Failed to generate password reset token'};
   }
 
-  async auth(email, password) {
+  async auth(email, password, req) {
+    const limiterUser = await limiterFailedLoginUser.get(email);
+    const limiterIp = await limiterFailedLoginIp.get(req.ip);
+
+    if (
+      (limiterUser !== null && limiterUser.remainingPoints <= 0) ||
+      (limiterIp !== null && limiterIp.remainingPoints <= 0)
+    ) {
+      // Block for 15 minutes. We do this manually becuase this library only blocks after you try to consume too many. Also this will reset the failure timer each over limit try.
+      limiterFailedLoginUser.block(email, 60 * 15);
+      throw new Error(
+        'Too many failed login attempts. Please try again later.',
+      );
+    }
+
     const user = await this.get({
       where: {email: email.toLowerCase(), loginAllowed: true},
     });
-    if (!user) {
-      return false;
+
+    if (user && (await this.passwordMatch(password, user.password))) {
+      return user;
     }
 
-    if (!(await this.passwordMatch(password, user.password))) {
-      return false;
-    }
-
-    return user;
+    await limiterFailedLoginUser.consume(email);
+    return false;
   }
 
   async getUserLoginAllowed(email) {

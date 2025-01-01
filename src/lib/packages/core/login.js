@@ -2,6 +2,7 @@ import Base from '../base.js';
 import jwt from 'jsonwebtoken';
 import User from './login/user.js';
 
+
 export default class Login extends Base {
   constructor(args) {
     super({className: 'login', ...args});
@@ -12,8 +13,8 @@ export default class Login extends Base {
   }
 
   // TODO: add rate limiting to this function and authenticateUser to prevent brute force attacks
-  async getToken({email, password}) {
-    const user = await this.authenticateUser({email, password});
+  async getToken({email, password, req}) {
+    const user = await this.authenticateUser({email, password, req});
 
     if (!user) {
       console.log('Authentication failed');
@@ -41,10 +42,10 @@ export default class Login extends Base {
     });
   }
 
-  async authenticateUser({email, password}) {
+  async authenticateUser({email, password, req}) {
     console.log('Logging in', email);
 
-    const user = await this.packages.core.user.auth(email, password);
+    const user = await this.packages.core.user.auth(email, password, req);
 
     if (!user) {
       return null;
