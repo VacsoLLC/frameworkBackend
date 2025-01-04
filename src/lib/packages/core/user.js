@@ -276,6 +276,38 @@ export default class UserTable extends Table {
     });
   }
 
+  async setPasswordForNewAccountUsingInviteToken({token, password, req}) {
+
+    const invite = await this.packages.core.invite.recordGet({where: {token}});
+
+    if (!invite || invite.used) {
+      throw new Error('Invalid token, or token has already been used');
+    }
+
+    const user = await this.recordGet({where: {email: invite.email}});
+
+    if (user) {
+      throw new Error('User already exists');
+    }
+
+    await this.packages.core.invite.recordUpdate({
+      recordId: invite.id,
+      data: {
+        used: true,
+      },
+      req: systemRequest(this),
+    })
+
+    return this.recordCreate({
+      data: {
+        email: invite.email,
+        password,
+      },
+      req: systemRequest(this),
+      audit: true,
+    });
+  }
+
   async generatePasswordResetToken({email, req}) {
     const {expiryTime, enabled, baseURL} = this.config.forgotPassword;
 

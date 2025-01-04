@@ -10,6 +10,7 @@ export default class Login extends Base {
     this.methodAdd('getToken', this.getToken);
     this.methodAdd('forgotPassword', this.forgotPassword);
     this.methodAdd('resetPassword', this.resetPassword);
+    this.methodAdd('createAccount', this.createAccount, null, false, false);
   }
 
   // TODO: add rate limiting to this function and authenticateUser to prevent brute force attacks
@@ -41,6 +42,11 @@ export default class Login extends Base {
       req,
     });
   }
+
+  async createAccount({token, password, req}) {
+    return this.packages.core.user.setPasswordForNewAccountUsingInviteToken({token, password, req});
+  }
+
 
   async authenticateUser({email, password, req}) {
     console.log('Logging in', email);
