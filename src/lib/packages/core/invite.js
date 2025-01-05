@@ -4,9 +4,6 @@ import { systemRequest } from '../../../util.js';
 import path from 'path'
 import { fileURLToPath } from 'url';
 
-
-const ACCEPTED_DOMAINS = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'aol.com', 'icloud.com'];
-
 export default class Invite extends Table {
   constructor(args) {
     super({name: 'Invite', className: 'invite', ...args});
@@ -43,11 +40,11 @@ export default class Invite extends Table {
 
     this.manyToOneAdd({
       referencedTableName: 'user',
-      columnName: 'author',
+      columnName: 'Requested by',
       displayColumns: [
         {
           columnName: 'name',
-          friendlyName: 'Viewer',
+          friendlyName: 'requested by',
           listStyle: 'nowrap',
           hiddenCreate: true,
         },
@@ -59,35 +56,18 @@ export default class Invite extends Table {
       },
     });
 
-    this.columnAdd({
-      columnName: 'created_at',
-      friendlyName: 'Created At',
-      columnType: 'datetime',
-      helpText: 'Creation Date',
-      onCreate: () => {
-        return Date.now();
-      },
-    });
-
-    this.columnAdd({
-      columnName: 'updated_at',
-      friendlyName: 'Updated At',
-      columnType: 'datetime',
-      helpText: 'Update Date',
-    });
-
     this.methodAdd('signUpInviteCreate', this.signUpInviteCreate, null, false, false);
   }
 
   async signUpInviteCreate({email, fromUser, req}) {
-    const {baseURL} = this.config.forgotPassword;
-    const {isEnabled, expiryInHours} = this.config.signUp;
+    const {baseURL} = this.config.general;
+    const {enabled, expiryInHours, allowedDomains} = this.config.signUp;
 
-    if (!isEnabled) {
+    if (!enabled) {
         throw new Error('Sign up is disabled');
     }
     
-    if(ACCEPTED_DOMAINS.filter(domain => email.includes(domain)).length === 0) {
+    if(allowedDomains.length > 0 && allowedDomains.filter(domain => email.includes(domain)).length === 0) {
         throw new Error('Invalid email')
     }
 
@@ -115,7 +95,7 @@ export default class Invite extends Table {
         throw new Error('Invite not created');
       }
       const emailBodyTemplate = await this.packages.core.email.compileTemplate(
-        path.join(__dirname, 'user', 'signUpLinkEmailBody.hbs'),
+        path.join(__dirname, 'invite', 'signUpLinkEmailBody.hbs'),
       );
       const emailContent = {
         body: emailBodyTemplate({

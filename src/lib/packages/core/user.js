@@ -276,7 +276,7 @@ export default class UserTable extends Table {
     });
   }
 
-  async setPasswordForNewAccountUsingInviteToken({token, password, req}) {
+  async setPasswordForNewAccountUsingInviteToken({token, password,fullName, req}) {
 
     const invite = await this.packages.core.invite.recordGet({where: {token}});
 
@@ -302,6 +302,7 @@ export default class UserTable extends Table {
       data: {
         email: invite.email,
         password,
+        name: fullName
       },
       req: systemRequest(this),
       audit: true,
@@ -309,7 +310,8 @@ export default class UserTable extends Table {
   }
 
   async generatePasswordResetToken({email, req}) {
-    const {expiryTime, enabled, baseURL} = this.config.forgotPassword;
+    const {baseURL} = this.config.forgotPassword
+    const {expiryTime, enabled} = this.config.forgotPassword;
 
     if (!enabled) {
       throw new Error('Password reset is disabled. Please contact support.');
