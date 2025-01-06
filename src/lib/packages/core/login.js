@@ -43,8 +43,8 @@ export default class Login extends Base {
     });
   }
 
-  async createAccount({token, password, req}) {
-    return this.packages.core.user.setPasswordForNewAccountUsingInviteToken({token, password, req});
+  async createAccount({token, password, fullName, req}) {
+    return this.packages.core.user.setPasswordForNewAccountUsingInviteToken({token, password, fullName, req});
   }
 
 
