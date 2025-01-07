@@ -102,7 +102,7 @@ export default class Invite extends Table {
           signUpLink: `${baseURL ?? 'https://localhost:5173'}/set-password?token=${token}`,
           expiryInHours
         }),
-        subject: 'Link to create account',
+        subject: 'Email address validation & account creation',
         to: email,
       };
       await this.packages.core.email.sendEmail({

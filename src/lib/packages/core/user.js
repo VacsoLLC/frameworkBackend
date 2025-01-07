@@ -276,8 +276,12 @@ export default class UserTable extends Table {
     });
   }
 
-  async setPasswordForNewAccountUsingInviteToken({token, password,fullName, req}) {
-
+  async setPasswordForNewAccountUsingInviteToken({
+    token,
+    password,
+    fullName,
+    req,
+  }) {
     const invite = await this.packages.core.invite.recordGet({where: {token}});
 
     if (!invite || invite.used) {
@@ -296,13 +300,13 @@ export default class UserTable extends Table {
         used: true,
       },
       req: systemRequest(this),
-    })
+    });
 
     return this.recordCreate({
       data: {
         email: invite.email,
         password,
-        name: fullName
+        name: fullName,
       },
       req: systemRequest(this),
       audit: true,
@@ -310,7 +314,7 @@ export default class UserTable extends Table {
   }
 
   async generatePasswordResetToken({email, req}) {
-    const {baseURL} = this.config.forgotPassword
+    const {baseURL} = this.config.general;
     const {expiryTime, enabled} = this.config.forgotPassword;
 
     if (!enabled) {
@@ -343,7 +347,7 @@ export default class UserTable extends Table {
         resetLink: `${baseURL ?? 'https://localhost:5173'}/reset-password?token=${token}`,
         expiry: humanizeDuration(expiryTime * 60 * 1000),
       }),
-      subject: 'Link to reset the password',
+      subject: 'Password Reset',
       to: user.email,
     };
 
