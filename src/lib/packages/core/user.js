@@ -276,8 +276,46 @@ export default class UserTable extends Table {
     });
   }
 
+  async setPasswordForNewAccountUsingInviteToken({
+    token,
+    password,
+    fullName,
+    req,
+  }) {
+    const invite = await this.packages.core.invite.recordGet({where: {token}});
+
+    if (!invite || invite.used) {
+      throw new Error('Invalid token, or token has already been used');
+    }
+
+    const user = await this.recordGet({where: {email: invite.email}});
+
+    if (user) {
+      throw new Error('User already exists');
+    }
+
+    await this.packages.core.invite.recordUpdate({
+      recordId: invite.id,
+      data: {
+        used: true,
+      },
+      req: systemRequest(this),
+    });
+
+    return this.recordCreate({
+      data: {
+        email: invite.email,
+        password,
+        name: fullName,
+      },
+      req: systemRequest(this),
+      audit: true,
+    });
+  }
+
   async generatePasswordResetToken({email, req}) {
-    const {expiryTime, enabled, baseURL} = this.config.forgotPassword;
+    const {baseURL} = this.config.general;
+    const {expiryTime, enabled} = this.config.forgotPassword;
 
     if (!enabled) {
       throw new Error('Password reset is disabled. Please contact support.');
@@ -309,7 +347,7 @@ export default class UserTable extends Table {
         resetLink: `${baseURL ?? 'https://localhost:5173'}/reset-password?token=${token}`,
         expiry: humanizeDuration(expiryTime * 60 * 1000),
       }),
-      subject: 'Link to reset the password',
+      subject: 'Password Reset',
       to: user.email,
     };
 
