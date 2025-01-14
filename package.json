@@ -31,7 +31,8 @@
     "postal-mime": "^2.2.5",
     "rate-limiter-flexible": "^5.0.4",
     "saml2-js": "^4.0.2",
-    "smtp-server": "^3.13.4"
+    "smtp-server": "^3.13.4",
+    "zxcvbn": "^4.4.2"
   },
   "devDependencies": {
     "prettier": "^3.3.3"

@@ -2,7 +2,6 @@ import Base from '../base.js';
 import jwt from 'jsonwebtoken';
 import User from './login/user.js';
 
-
 export default class Login extends Base {
   constructor(args) {
     super({className: 'login', ...args});
@@ -44,9 +43,13 @@ export default class Login extends Base {
   }
 
   async createAccount({token, password, fullName, req}) {
-    return this.packages.core.user.setPasswordForNewAccountUsingInviteToken({token, password, fullName, req});
+    return this.packages.core.user.setPasswordForNewAccountUsingInviteToken({
+      token,
+      password,
+      fullName,
+      req,
+    });
   }
-
 
   async authenticateUser({email, password, req}) {
     console.log('Logging in', email);
