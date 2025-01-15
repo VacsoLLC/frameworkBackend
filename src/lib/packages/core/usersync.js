@@ -9,7 +9,8 @@ export default class UserSync extends Base {
   constructor(args) {
     super({className: 'usersync', ...args});
 
-    this.methodAdd('sync', this.sync);
+    this.methodAdd({id: 'sync', method: this.sync});
+
     if (
       this.config.usersync &&
       this.config.usersync.enabled &&

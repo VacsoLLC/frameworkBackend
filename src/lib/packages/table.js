@@ -5,6 +5,8 @@ import Base from './base.js';
 import Column from './column.js';
 import Action from './action.js';
 
+import * as validation from './table_schema.js';
+
 let knexInstance = null;
 const knexConnected = {};
 //const knexInstances = {};
@@ -106,14 +108,46 @@ export default class Table extends Base {
       childrenGet: true,
     });
 
-    this.methodAdd('recordGet', this.recordGet);
-    this.methodAdd('recordCreate', this.recordCreate);
-    this.methodAdd('recordUpdate', this.recordUpdate);
-    this.methodAdd('recordDelete', this.recordDelete);
-    this.methodAdd('rowsGet', this.rowsGet);
-    this.methodAdd('schemaGet', this.schemaGet);
-    this.methodAdd('actionsGet', this.actionsGet);
-    this.methodAdd('childrenGet', this.childrenGet);
+    this.methodAdd({
+      id: 'recordGet',
+      method: this.recordGet,
+      validator: validation.recordGet,
+    });
+    this.methodAdd({
+      id: 'recordCreate',
+      method: this.recordCreate,
+      validator: validation.recordCreate,
+    });
+    this.methodAdd({
+      id: 'recordUpdate',
+      method: this.recordUpdate,
+      validator: validation.recordUpdate,
+    });
+    this.methodAdd({
+      id: 'recordDelete',
+      method: this.recordDelete,
+      validator: validation.recordDelete,
+    });
+    this.methodAdd({
+      id: 'rowsGet',
+      method: this.rowsGet,
+      validator: validation.rowsGet,
+    });
+    this.methodAdd({
+      id: 'schemaGet',
+      method: this.schemaGet,
+      validator: validation.schemaGet,
+    });
+    this.methodAdd({
+      id: 'actionsGet',
+      method: this.actionsGet,
+      validator: validation.actionsGet,
+    });
+    this.methodAdd({
+      id: 'childrenGet',
+      method: this.childrenGet,
+      validator: validation.childrenGet,
+    });
   }
 
   rolesDeleteAdd(...role) {
@@ -354,7 +388,7 @@ export default class Table extends Base {
     tabOrder = 1000,
     defaultValue,
     hiddenCreate,
-    queryModifier = false, // Can be used to modify the query for references before it is run. Useful for filtering in fancy ways.
+    queryModifier, // Can be used to modify the query for references before it is run. Useful for filtering in fancy ways.
     ...args
   }) {
     columnName = columnName || `${referencedTableName}_id`;
@@ -477,7 +511,7 @@ export default class Table extends Base {
 
   selectColumns({
     columns = [],
-    returnPasswords = false,
+    _returnPasswords = false,
     includeJoins = true,
     user,
     query,
@@ -498,7 +532,7 @@ export default class Table extends Base {
         }
       }
 
-      if (column.columnType == 'password' && !returnPasswords) {
+      if (column.columnType == 'password' && !_returnPasswords) {
         continue;
       }
 
@@ -544,12 +578,12 @@ export default class Table extends Base {
   async rowsGet({
     where,
     sortField = 'id',
-    sortOrder = 'desc',
+    sortOrder = 'DESC',
     limit,
     offset,
     returnCount = false,
     columns = [],
-    queryModifier = false,
+    queryModifier,
     queryModifierArgs = {},
     req,
   }) {
@@ -927,7 +961,7 @@ export default class Table extends Base {
   }
 
   // returns a single record. If multiple records are found, only the first is returned.
-  async recordGet({recordId, where, returnPasswords = false, req}) {
+  async recordGet({recordId, where, _returnPasswords = false, req}) {
     if (!recordId && !where) {
       throw new Error('recordId or where is required to fetch a record.');
     }
@@ -946,7 +980,7 @@ export default class Table extends Base {
 
       // Get columns to select
       query = this.selectColumns({
-        returnPasswords,
+        _returnPasswords,
         includeJoins: true,
         user: req?.user,
         query,
@@ -1088,7 +1122,7 @@ export default class Table extends Base {
 
     try {
       const record =
-        action !== 'delete' ? await this.recordGet({recordId}) : null;
+        action !== 'delete' ? await this.recordGet({recordId, req: {}}) : null;
 
       const searchText = record ? await this.objectToSearchText(record) : ''; // tables can specify the text they want indexed
 

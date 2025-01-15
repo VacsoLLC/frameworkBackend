@@ -1,4 +1,17 @@
 // All framework classes must extend base. It provides a common interface.
+import {registry} from '../registry.js';
+import {z} from 'zod';
+import {extendZodWithOpenApi} from '@asteasolutions/zod-to-openapi';
+
+extendZodWithOpenApi(z);
+
+const responseObject = z
+  .object({
+    success: z.boolean(),
+    message: z.string(),
+    data: z.object(),
+  })
+  .openapi('response');
 export default class Base {
   constructor({
     className,
@@ -26,7 +39,7 @@ export default class Base {
     this.methods = {}; // This is a list of all the methods in this class that are accessible via the API. use methodAdd to add a method.
     this.isTable = false;
 
-    this.methodAdd('methodList', this.methodList);
+    this.methodAdd({id: 'methodList', method: this.methodList});
   }
 
   // This is called after all packages and classes have been initialized.
@@ -51,13 +64,14 @@ export default class Base {
    * @throws {Error} If the method is not provided or is not a function.
    * @throws {Error} If a method with the same id already exists and overwrite is false.
    */
-  methodAdd(
+  methodAdd({
     id,
     method,
     validationFunction = null,
+    validator = null,
     overwrite = false,
     authRequired = this.authenticationRequired,
-  ) {
+  }) {
     if (!id) {
       throw new Error('Method id is required.');
     }
@@ -76,7 +90,56 @@ export default class Base {
       method,
       validationFunction,
       authRequired,
+      validator,
     };
+
+    if (validator) {
+      registry.registerPath({
+        method: 'post',
+        path: `/api/${this.packageName}/${this.className}/${id}`,
+        summary: id,
+        request: {
+          body: {
+            content: {
+              'application/json': {
+                schema: validator,
+              },
+            },
+          },
+          //params: validator,
+        },
+        // TODO
+        responses: {
+          200: {
+            type: 'object',
+            description: 'Successful response',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    data: {
+                      type: 'object',
+                      description:
+                        'The data returned from the function called.',
+                    },
+                    messages: {
+                      type: 'array',
+                      description:
+                        'Array of objects that contain status messages.',
+                    },
+                    navigate: {
+                      type: 'string',
+                      description: 'Redirect to this path',
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+    }
   }
 
   methodAuthRequired({req, id}) {
@@ -107,11 +170,27 @@ export default class Base {
 
     const errors = await this.methodValidate({req, id, args});
 
+    if (this.methods[id].validator) {
+      try {
+        this.methods[id].validator.parse(args);
+      } catch (e) {
+        throw new Error(e.errors.map((error) => error.message).join('. '));
+      }
+    }
+
     if (errors) {
       throw new Error(errors.join(' '));
     }
 
-    return await this.methods[id].method.call(this, {req, ...args});
+    try {
+      return await this.methods[id].method.call(this, {req, ...args});
+    } catch (e) {
+      if (e instanceof Error) {
+        throw e.message;
+      } else {
+        throw e;
+      }
+    }
   }
 
   methodList(req, id, args) {

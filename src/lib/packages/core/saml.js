@@ -4,7 +4,7 @@ import Base from '../base.js';
 
 export default class Saml extends Base {
   constructor(args) {
-    super({ className: 'saml', ...args });
+    super({className: 'saml', ...args});
     this.authenticationRequired = false;
 
     this.configs = {};
@@ -26,15 +26,15 @@ export default class Saml extends Base {
       };
 
       this.configs[key].sp = new saml2.ServiceProvider(
-        this.configs[key].sp_options
+        this.configs[key].sp_options,
       );
 
       this.configs[key].idp = new saml2.IdentityProvider(
-        this.configs[key].idp_options
+        this.configs[key].idp_options,
       );
     }
-    this.methodAdd('list', this.list);
-    this.methodAdd('acs', this.acs);
+    this.methodAdd({id: 'list', method: this.list});
+    this.methodAdd({id: 'acs', method: this.acs});
   }
 
   async list(req, res) {
@@ -51,13 +51,13 @@ export default class Saml extends Base {
     return list;
   }
 
-  async acs({ recordId, req }) {
+  async acs({recordId, req}) {
     const idp = recordId;
 
     const saml_response = await this.postAssertWithPromise(req.body, idp);
 
     const user = await this.packages.core.user.getUserLoginAllowed(
-      saml_response.user.name_id
+      saml_response.user.name_id,
     );
 
     if (!user) {
@@ -65,7 +65,7 @@ export default class Saml extends Base {
     }
 
     console.log('Authentication successful');
-    const token = this.packages.core.login._createToken({ user });
+    const token = this.packages.core.login._createToken({user});
 
     return {
       redirect: `/token?token=${token}`,
@@ -84,7 +84,7 @@ export default class Saml extends Base {
           } else {
             resolve(login_url);
           }
-        }
+        },
       );
     });
   }
@@ -94,14 +94,14 @@ export default class Saml extends Base {
     return new Promise((resolve, reject) => {
       this.configs[idp].sp.post_assert(
         this.configs[idp].idp,
-        { request_body },
+        {request_body},
         function (err, saml_response) {
           if (err != null) {
             reject(err);
           } else {
             resolve(saml_response);
           }
-        }
+        },
       );
     });
   }

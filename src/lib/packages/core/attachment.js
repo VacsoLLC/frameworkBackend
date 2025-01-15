@@ -101,12 +101,12 @@ export default class Attachment extends Table {
       columnType: 'boolean',
     });
 
-    this.methodAdd('upload', this.upload);
-    this.methodAdd('download', this.download);
+    this.methodAdd({id: 'upload', method: this.upload});
+    this.methodAdd({id: 'download', method: this.download});
   }
 
   async download({recordId, req}) {
-    const record = await this.recordGet({recordId});
+    const record = await this.recordGet({recordId, req});
 
     if (!record) {
       req.res.status(404);

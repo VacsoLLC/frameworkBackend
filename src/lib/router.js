@@ -1,4 +1,5 @@
 import {RateLimiterMemory} from 'rate-limiter-flexible';
+import {generateOpenAPI} from './registry.js';
 
 export default function routes(fastify, options) {
   const packages = options.packages;
@@ -23,6 +24,11 @@ export default function routes(fastify, options) {
     request.user = packages.core.login.userFromToken({token});
   });
 
+  fastify.get('/openapi', async (request, reply) => {
+    const test = generateOpenAPI(packages.config.general.baseURL);
+    return test;
+  });
+
   fastify.get('/hello', async (request, reply) => {
     return {message: 'Hello World!'};
   });
@@ -37,6 +43,19 @@ export default function routes(fastify, options) {
 
   fastify.all(
     '/:packageName/:className/:action/:recordId',
+    {
+      schema: {
+        params: {
+          type: 'object',
+          properties: {
+            packageName: {type: 'string'},
+            className: {type: 'string'},
+            action: {type: 'string'},
+            recordId: {type: 'number'},
+          },
+        },
+      },
+    },
     async (request, reply) => {
       return await handlerFunction(packages, limiter, request, reply);
     },
@@ -70,6 +89,15 @@ async function handlerFunction(packages, limiter, req, res) {
     res.status(404);
     return {
       message: 'Not Found. Methods starting with _ can not be called.',
+    };
+  }
+
+  // key names that start with _ are not allowed to be called via the api
+  if (Object.keys(req.body || {}).some((key) => key.startsWith('_'))) {
+    limiter.penalty(ip, 10);
+    res.status(500);
+    return {
+      message: 'Arguments starting with _ can not be specified remotely.',
     };
   }
 

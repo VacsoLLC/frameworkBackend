@@ -1,6 +1,6 @@
 import fs from 'fs';
-import path, { dirname } from 'path';
-import { fileURLToPath } from 'url';
+import path, {dirname} from 'path';
+import {fileURLToPath} from 'url';
 import m2m from './m2m.js';
 
 export default class DB {
@@ -29,7 +29,10 @@ export default class DB {
         let manyToManys = [];
         let addRecords = [];
         for (const file of classFiles) {
-          if (fs.statSync(path.join(classDir, file)).isDirectory()) {
+          if (
+            fs.statSync(path.join(classDir, file)).isDirectory() ||
+            file.includes('_schema')
+          ) {
             // Skip this iteration if it's a directory
             continue;
           }

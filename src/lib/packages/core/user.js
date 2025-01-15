@@ -186,8 +186,10 @@ export default class UserTable extends Table {
       className: 'user_role',
     }); //
 
-    this.methodAdd('findUserByPhoneNumber', this.findUserByPhoneNumber);
-    // this.methodAdd('generatePasswordResetToken', this.generatePasswordResetToken);
+    this.methodAdd({
+      id: 'findUserByPhoneNumber',
+      method: this.findUserByPhoneNumber,
+    });
   }
 
   async findUserByPhoneNumber({recordId, req}) {
@@ -282,13 +284,16 @@ export default class UserTable extends Table {
     fullName,
     req,
   }) {
-    const invite = await this.packages.core.invite.recordGet({where: {token}});
+    const invite = await this.packages.core.invite.recordGet({
+      where: {token},
+      req,
+    });
 
     if (!invite || invite.used) {
       throw new Error('Invalid token, or token has already been used');
     }
 
-    const user = await this.recordGet({where: {email: invite.email}});
+    const user = await this.recordGet({where: {email: invite.email}, req});
 
     if (user) {
       throw new Error('User already exists');
@@ -451,7 +456,7 @@ export default class UserTable extends Table {
   }
 
   async get({where}) {
-    const user = await this.recordGet({where, returnPasswords: true});
+    const user = await this.recordGet({where, _returnPasswords: true, req: {}});
 
     if (!user) {
       return false;
@@ -459,16 +464,19 @@ export default class UserTable extends Table {
 
     const groups = await this.packages.core.user_group.rowsGet({
       where: {id2: user.id},
+      req: {},
     });
 
     user.groups = groups.rows.map((group) => group.id1);
 
     const user_roles = await this.packages.core.user_role.rowsGet({
       where: {id2: user.id},
+      req: {},
     });
 
     const group_roles = await this.packages.core.group_role.rowsGet({
       where: {id2: user.id},
+      req: {},
     });
 
     user.roles = this.combineUnique(

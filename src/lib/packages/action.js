@@ -42,15 +42,19 @@ export default class Action {
       noOp: false,
       type: 'action', // currently supports 'action', 'table' and 'attach'. Attach is a special type of action that is used to attach a file to a record. table are table level actions.
       touch: true, // display on touch screen interfaces
+      validator: null, // a Zod schema to validate the input
       // Override the defaults with the provided values
       ...action,
     };
 
     // if method is a function, add it to the class.
     if (typeof newAction.method == 'function') {
-      action.thisTable.methodAdd(newAction.id, newAction.method, (args) =>
-        this.validate(args),
-      );
+      action.thisTable.methodAdd({
+        id: newAction.id,
+        method: newAction.method,
+        validatationFunction: (args) => this.validate(args),
+        validator: newAction.validator,
+      });
     } else if (newAction.method === null) {
       newAction.noOp = true;
     } else {
