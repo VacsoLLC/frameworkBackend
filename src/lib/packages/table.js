@@ -44,7 +44,7 @@ export default class Table extends Base {
     this.dbDotTable = `${this.packageName}.${this.className}`;
 
     // by default we index all tables. set index: false if you dont want it indexed.
-    if (!Object.hasOwnProperty(args[0], 'index')) {
+    if (!args[0].hasOwnProperty('index')) {
       this.index = true;
     } else {
       this.index = args[0].index;
