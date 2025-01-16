@@ -147,10 +147,12 @@ export default class UserTable extends Table {
         Password: {
           fieldType: 'password',
           required: true,
+          requiresStrengthCheck: true,
         },
         'Verify Password': {
           fieldType: 'password',
           required: true,
+          requiresStrengthCheck: false,
         },
       },
     });
@@ -232,6 +234,7 @@ export default class UserTable extends Table {
     'Verify Password': verifyPassword,
     req,
   }) {
+    const {requiredPasswordStrength} = this.config.general;
     if (process.env.DEMO_MODE == 'true') {
       throw new Error('Password resets are disabled in demo mode.');
     }
@@ -242,6 +245,11 @@ export default class UserTable extends Table {
 
     if (Password !== verifyPassword) {
       throw new Error('Password and Verify Password must match.');
+    }
+
+    const passwordStrength = getPasswordStrength(Password);
+    if (passwordStrength < requiredPasswordStrength) {
+      throw new Error('Password should be strong');
     }
 
     return await this.recordUpdate({
