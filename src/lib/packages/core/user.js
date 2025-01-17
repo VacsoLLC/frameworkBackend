@@ -1,5 +1,5 @@
 import path from 'path';
-import {systemRequest} from '../../../util.js';
+import {getPasswordStrength, systemRequest} from '../../../util.js';
 import Table from '../table.js';
 import bcrypt from 'bcrypt';
 import {fileURLToPath} from 'url';
@@ -147,10 +147,12 @@ export default class UserTable extends Table {
         Password: {
           fieldType: 'password',
           required: true,
+          requiresStrengthCheck: true,
         },
         'Verify Password': {
           fieldType: 'password',
           required: true,
+          requiresStrengthCheck: false,
         },
       },
     });
@@ -234,6 +236,7 @@ export default class UserTable extends Table {
     'Verify Password': verifyPassword,
     req,
   }) {
+    const {requiredPasswordStrength} = this.config.general;
     if (process.env.DEMO_MODE == 'true') {
       throw new Error('Password resets are disabled in demo mode.');
     }
@@ -246,6 +249,11 @@ export default class UserTable extends Table {
       throw new Error('Password and Verify Password must match.');
     }
 
+    const passwordStrength = getPasswordStrength(Password);
+    if (passwordStrength < requiredPasswordStrength) {
+      throw new Error('Password should be strong');
+    }
+
     return await this.recordUpdate({
       recordId,
       data: {
@@ -256,6 +264,13 @@ export default class UserTable extends Table {
   }
 
   async resetForgottenPassword({token, password, req}) {
+    const {requiredPasswordStrength} = this.config.general
+    const passwordStrength = getPasswordStrength(password);
+
+    if (passwordStrength.score < requiredPasswordStrength) {
+      throw new Error('Password should be strong');
+    }
+    
     const user = await this.get({
       where: {passwordResetToken: token},
     });
@@ -284,6 +299,13 @@ export default class UserTable extends Table {
     fullName,
     req,
   }) {
+    const {requiredPasswordStrength} = this.config.general;
+
+    const passwordScore = getPasswordStrength(password);
+    
+    if (passwordScore.score < requiredPasswordStrength) {
+      throw new Error('Password should be strong');
+    }
     const invite = await this.packages.core.invite.recordGet({
       where: {token},
       req,

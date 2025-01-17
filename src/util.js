@@ -1,7 +1,8 @@
-import { fileURLToPath, pathToFileURL } from 'url';
+import {fileURLToPath, pathToFileURL} from 'url';
 import User from './lib/packages/core/login/user.js';
-import { readdir } from 'fs/promises';
-import { join, basename, resolve, extname } from 'path';
+import {readdir} from 'fs/promises';
+import {join, basename, resolve, extname} from 'path';
+import z from 'zxcvbn';
 
 export function systemUser(that) {
   return new User({
@@ -84,3 +85,7 @@ export async function loadFromDir(dir) {
   // Return the populated modules object
   return modules;
 }
+
+export const getPasswordStrength = (password) => {
+  return z(password).score;
+};
