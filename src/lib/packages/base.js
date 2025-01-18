@@ -57,21 +57,23 @@ export default class Base {
   }
 
   /**
-   * Adds a method to the methods collection.
+   * Expose a method to the API.
    *
-   * @param {string} id - The unique identifier for the method.
-   * @param {Function} method - The method to be added.
-   * @param {Function|null} [validationFunction=null] - An optional validation function for the method.
-   * @param {boolean} [overwrite=false] - Whether to overwrite an existing method with the same id.
-   * @param {boolean} [authRequired=this.authenticationRequired] - Whether authentication is required to access the method. Defaults to the table value.
-   * @throws {Error} If the id is not provided.
+   * @param {Object} options - The options for adding the method.
+   * @param {string} options.id - The unique identifier for the method.
+   * @param {Function} options.method - The method function to be added.
+   * @param {Object} [options.validator=null] - The validator object (must be a zod object).
+   * @param {boolean} [options.overwrite=false] - Flag to allow overwriting an existing method.
+   * @param {boolean} [options.authRequired=this.authenticationRequired] - Flag to indicate if authentication is required.
+   *
+   * @throws {Error} If the validator is not provided or does not have a parse method.
+   * @throws {Error} If the method id is not provided.
    * @throws {Error} If the method is not provided or is not a function.
-   * @throws {Error} If a method with the same id already exists and overwrite is false.
+   * @throws {Error} If the method id already exists and overwrite is not set to true.
    */
   methodAdd({
     id,
     method,
-    validationFunction = null,
     validator = null,
     overwrite = false,
     authRequired = this.authenticationRequired,
@@ -96,7 +98,6 @@ export default class Base {
 
     this.methods[id] = {
       method,
-      validationFunction,
       authRequired,
       validator,
     };
@@ -156,36 +157,21 @@ export default class Base {
     return true;
   }
 
-  async methodValidate({req, id, args}) {
-    if (this.methods[id].validationFunction) {
-      const errors = await this.methods[id].validationFunction({
-        req,
-        id,
-        args,
-      });
-      if (errors) {
-        return errors;
-      }
-    }
-  }
-
   async methodExecute(req, id, args) {
     if (!this.methods[id]) {
       return null;
     }
 
-    const errors = await this.methodValidate({req, id, args});
-
-    if (this.methods[id].validator) {
-      try {
-        this.methods[id].validator.parse(args);
-      } catch (e) {
-        throw new Error(e.errors.map((error) => error.message).join('. '));
-      }
+    if (!this.methods[id].validator || !this.methods[id].validator.parse) {
+      throw new Error(
+        'No validator found for this function. Cannot execute methods without a validator.',
+      );
     }
 
-    if (errors) {
-      throw new Error(errors.join(' '));
+    try {
+      this.methods[id].validator.parse(args);
+    } catch (e) {
+      throw new Error(e.errors.map((error) => error.message).join('. '));
     }
 
     try {

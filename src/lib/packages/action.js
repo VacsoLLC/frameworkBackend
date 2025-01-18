@@ -52,7 +52,6 @@ export default class Action {
       action.thisTable.methodAdd({
         id: newAction.id,
         method: newAction.method,
-        validatationFunction: (args) => this.validate(args),
         validator: newAction.validator,
       });
     } else if (newAction.method === null) {
@@ -107,35 +106,7 @@ export default class Action {
     }
   }
 
-  async validate({args}) {
-    if (!this.inputs || this.inputs.length == 0) return; // no inputs, no validations
-
-    const errors = [];
-
-    for (const input in this.inputs) {
-      if (this.inputs[input].required && !args[input]) {
-        errors.push(`The ${input} field is required.`);
-      }
-      if (
-        this.inputs[input].validations &&
-        Array.isArray(this.inputs[input].validations)
-      ) {
-        for (const validate of this.inputs[input].validations) {
-          const result = await validate.call(this.thisTable, {
-            args,
-            value: args[input],
-          });
-          if (result) {
-            errors.push(result);
-          }
-        }
-      }
-    }
-
-    if (errors.length > 0) {
-      throw new Error(errors.join(' '));
-    }
-  }
+ 
 
   toJSON() {
     const that = {...this};
