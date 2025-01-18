@@ -5,7 +5,7 @@ export default class DataImporter extends Base {
   constructor(args) {
     super({className: 'importer', ...args});
     this.importedRecords = new Map();
-    this.methodAdd({id: 'importData', method: this.importData});
+    // this is not exposed to the outside world.
   }
 
   /**
@@ -154,7 +154,6 @@ export default class DataImporter extends Base {
     );
     const existingRecord = await EntityClass.recordGet({
       where: whereClause,
-      req: {},
     });
 
     if (existingRecord) {

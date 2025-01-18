@@ -85,7 +85,7 @@ export default class Role extends Table {
       return this.nameToIDCache[name];
     }
 
-    const result = await this.recordGet({where: {name}, req: {}});
+    const result = await this.recordGet({where: {name}});
 
     this.nameToIDCache[name] = result.id;
 

@@ -7,6 +7,8 @@ import humanizeDuration from 'humanize-duration';
 
 import {RateLimiterMemory} from 'rate-limiter-flexible';
 
+import {z} from 'zod';
+
 export default class UserTable extends Table {
   constructor(args) {
     super({name: 'User', className: 'user', ...args});
@@ -155,6 +157,10 @@ export default class UserTable extends Table {
           requiresStrengthCheck: false,
         },
       },
+      validator: z.object({
+        Password: z.string(),
+        'Verify Password': z.string(),
+      }),
     });
 
     // A special user that is used for system actions
@@ -191,6 +197,7 @@ export default class UserTable extends Table {
     this.methodAdd({
       id: 'findUserByPhoneNumber',
       method: this.findUserByPhoneNumber,
+      validator: z.object({recordId: z.string()}),
     });
   }
 
@@ -264,13 +271,13 @@ export default class UserTable extends Table {
   }
 
   async resetForgottenPassword({token, password, req}) {
-    const {requiredPasswordStrength} = this.config.general
+    const {requiredPasswordStrength} = this.config.general;
     const passwordStrength = getPasswordStrength(password);
 
     if (passwordStrength.score < requiredPasswordStrength) {
       throw new Error('Password should be strong');
     }
-    
+
     const user = await this.get({
       where: {passwordResetToken: token},
     });
@@ -302,7 +309,7 @@ export default class UserTable extends Table {
     const {requiredPasswordStrength} = this.config.general;
 
     const passwordScore = getPasswordStrength(password);
-    
+
     if (passwordScore.score < requiredPasswordStrength) {
       throw new Error('Password should be strong');
     }
@@ -478,7 +485,7 @@ export default class UserTable extends Table {
   }
 
   async get({where}) {
-    const user = await this.recordGet({where, _returnPasswords: true, req: {}});
+    const user = await this.recordGet({where, _returnPasswords: true});
 
     if (!user) {
       return false;
@@ -486,19 +493,16 @@ export default class UserTable extends Table {
 
     const groups = await this.packages.core.user_group.rowsGet({
       where: {id2: user.id},
-      req: {},
     });
 
     user.groups = groups.rows.map((group) => group.id1);
 
     const user_roles = await this.packages.core.user_role.rowsGet({
       where: {id2: user.id},
-      req: {},
     });
 
     const group_roles = await this.packages.core.group_role.rowsGet({
       where: {id2: user.id},
-      req: {},
     });
 
     user.roles = this.combineUnique(

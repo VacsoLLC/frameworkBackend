@@ -3,6 +3,7 @@ import Table from '../table.js';
 import {systemRequest} from '../../../util.js';
 import path from 'path';
 import {fileURLToPath} from 'url';
+import {z} from 'zod';
 
 export default class Invite extends Table {
   constructor(args) {
@@ -59,6 +60,11 @@ export default class Invite extends Table {
     this.methodAdd({
       id: 'signUpInviteCreate',
       method: this.signUpInviteCreate,
+      validator: z.object({
+        email: z.string().email(),
+        fromUser: z.boolean().optional(),
+      }),
+      authRequired: false,
     });
   }
 

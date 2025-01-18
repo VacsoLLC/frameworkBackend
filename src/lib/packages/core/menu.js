@@ -1,9 +1,15 @@
 import Base from '../base.js';
 
+import {z} from 'zod';
+
 export default class Menu extends Base {
   constructor(args) {
     super({className: 'menu', ...args});
-    this.methodAdd({id: 'getAllMenuItems', method: this.getAllMenuItems});
+    this.methodAdd({
+      id: 'getAllMenuItems',
+      method: this.getAllMenuItems,
+      validator: z.object({}),
+    });
   }
 
   async extractMenuItems(req, res) {

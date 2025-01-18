@@ -4,12 +4,13 @@ import {Client} from '@microsoft/microsoft-graph-client';
 import {TokenCredentialAuthenticationProvider} from '@microsoft/microsoft-graph-client/authProviders/azureTokenCredentials/index.js';
 import {ClientSecretCredential} from '@azure/identity';
 import {systemRequest} from '../../../../src/util.js';
+import {z} from 'zod';
 
 export default class UserSync extends Base {
   constructor(args) {
     super({className: 'usersync', ...args});
 
-    this.methodAdd({id: 'sync', method: this.sync});
+    this.methodAdd({id: 'sync', method: this.sync, validator: z.object({})});
 
     if (
       this.config.usersync &&
@@ -35,6 +36,7 @@ export default class UserSync extends Base {
         method: async (...args) => {
           return await this.sync();
         },
+        validator: z.object({}),
       });
     });
   }

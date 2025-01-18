@@ -11,18 +11,12 @@ export default class Healthcheck extends Base {
       method: this.status,
       validator: z.object({}),
     });
-
-    this.methodAdd({
-      id: 'status2',
-      method: this.status,
-      validator: z.object({}),
-    });
   }
 
   async status() {
     const recordId = 1;
     try {
-      const user = await this.packages.core.user.recordGet({recordId, req: {}});
+      const user = await this.packages.core.user.recordGet({recordId});
 
       if (!user) {
         throw new Error(

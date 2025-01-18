@@ -1,4 +1,5 @@
 import Base from '../base.js';
+import {z} from 'zod';
 
 export default class Search extends Base {
   constructor(args) {
@@ -7,7 +8,11 @@ export default class Search extends Base {
     this.host = process.env.MARQO_HOST || '127.0.0.1';
     this.port = 8882;
     this.connected = false;
-    this.methodAdd({id: 'search', method: this.search});
+    this.methodAdd({
+      id: 'search',
+      method: this.search,
+      validator: z.object({query: z.string()}),
+    });
   }
 
   async init() {

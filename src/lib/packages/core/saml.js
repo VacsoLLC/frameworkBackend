@@ -1,6 +1,7 @@
 import saml2 from 'saml2-js';
 
 import Base from '../base.js';
+import {z} from 'zod';
 
 export default class Saml extends Base {
   constructor(args) {
@@ -33,8 +34,12 @@ export default class Saml extends Base {
         this.configs[key].idp_options,
       );
     }
-    this.methodAdd({id: 'list', method: this.list});
-    this.methodAdd({id: 'acs', method: this.acs});
+    this.methodAdd({id: 'list', method: this.list, validator: z.object({})});
+    this.methodAdd({
+      id: 'acs',
+      method: this.acs,
+      validator: z.object({recordId: z.string()}),
+    });
   }
 
   async list(req, res) {

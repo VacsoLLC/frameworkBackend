@@ -5,7 +5,7 @@ extendZodWithOpenApi(z);
 
 // Common reusable schemas
 
-const recordId = z.number({
+const recordId = z.coerce.number({
   required_error: 'Record ID is required',
   invalid_type_error: 'Record ID must be a number',
 });
@@ -18,9 +18,9 @@ const sortField = z.string().optional();
 
 const sortOrder = z.enum(['ASC', 'DESC']).optional();
 
-const limit = z.number().positive().optional();
+const limit = z.coerce.number().positive().optional();
 
-const offset = z.number().min(0).optional();
+const offset = z.coerce.number().min(0).optional();
 
 const columns = z.array(z.string()).optional();
 

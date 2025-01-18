@@ -1,5 +1,4 @@
 import {RateLimiterMemory} from 'rate-limiter-flexible';
-import {generateOpenAPI} from './registry.js';
 
 export default function routes(fastify, options) {
   const packages = options.packages;
@@ -24,11 +23,6 @@ export default function routes(fastify, options) {
     request.user = packages.core.login.userFromToken({token});
   });
 
-  fastify.get('/openapi', async (request, reply) => {
-    const test = generateOpenAPI(packages.config.general.baseURL);
-    return test;
-  });
-
   fastify.get('/hello', async (request, reply) => {
     return {message: 'Hello World!'};
   });
@@ -43,19 +37,6 @@ export default function routes(fastify, options) {
 
   fastify.all(
     '/:packageName/:className/:action/:recordId',
-    {
-      schema: {
-        params: {
-          type: 'object',
-          properties: {
-            packageName: {type: 'string'},
-            className: {type: 'string'},
-            action: {type: 'string'},
-            recordId: {type: 'number'},
-          },
-        },
-      },
-    },
     async (request, reply) => {
       return await handlerFunction(packages, limiter, request, reply);
     },
@@ -155,7 +136,7 @@ async function handlerFunction(packages, limiter, req, res) {
       );
 
       if (res.sent) {
-        // the method sent its own response. This is only used for attachment download currently.
+        // the method sent its own response. This is only used for attachment download & openapi currently.
         return;
       }
 

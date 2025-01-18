@@ -2,6 +2,7 @@ import Table from '../table.js';
 import {systemUser} from '../../../util.js';
 import {fileURLToPath} from 'url';
 import {dirname, join} from 'path';
+import {z} from 'zod';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -89,8 +90,16 @@ export default class Views extends Table {
         return req.user.id;
       },
     });
-    this.methodAdd({id: 'getActiveViews', method: this.getActiveViews});
-    this.methodAdd({id: 'logUser', method: this.logUser});
+
+    this.methodAdd({
+      id: 'logUser',
+      method: this.logUser,
+      validator: z.object({
+        db: z.string(),
+        table: z.string(),
+        row: z.coerce.number(),
+      }),
+    });
   }
 
   async logUser(args) {
@@ -101,7 +110,6 @@ export default class Views extends Table {
         row: args.row,
         author: args.req.user.id,
       },
-      req: {},
     });
 
     const currentTime = new Date().getTime() / 1000;

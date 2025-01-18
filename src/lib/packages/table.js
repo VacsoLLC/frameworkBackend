@@ -7,6 +7,8 @@ import Action from './action.js';
 
 import * as validation from './table_schema.js';
 
+import z from 'zod';
+
 let knexInstance = null;
 const knexConnected = {};
 //const knexInstances = {};
@@ -60,6 +62,7 @@ export default class Table extends Base {
       helpText: 'Update the record and stay here',
       rolesExecute: this.rolesWrite,
       touch: false,
+      validator: validation.recordUpdate,
     });
 
     this.actionAdd({
@@ -69,6 +72,7 @@ export default class Table extends Base {
       rolesExecute: this.rolesWrite,
       close: true,
       touch: false,
+      validator: validation.recordUpdate,
     });
 
     this.actionAdd({
@@ -80,6 +84,7 @@ export default class Table extends Base {
       color: 'secondary',
       showSuccess: false,
       touch: false,
+      validator: z.object({}),
     });
 
     this.actionAdd({
@@ -92,12 +97,14 @@ export default class Table extends Base {
       color: 'danger',
       rolesExecute: this.rolesDelete,
       touch: false,
+      validator: validation.recordDelete,
     });
 
     this.actionAdd({
       newLine: true,
-      method: this.noOp, // FIXME: this is a workaround to the method registration process. fix this.
+      method: null,
       touch: false,
+      validator: z.object({}),
     });
 
     this.readOnlyMethodsAdd({
@@ -1122,7 +1129,7 @@ export default class Table extends Base {
 
     try {
       const record =
-        action !== 'delete' ? await this.recordGet({recordId, req: {}}) : null;
+        action !== 'delete' ? await this.recordGet({recordId}) : null;
 
       const searchText = record ? await this.objectToSearchText(record) : ''; // tables can specify the text they want indexed
 

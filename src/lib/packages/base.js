@@ -39,7 +39,11 @@ export default class Base {
     this.methods = {}; // This is a list of all the methods in this class that are accessible via the API. use methodAdd to add a method.
     this.isTable = false;
 
-    this.methodAdd({id: 'methodList', method: this.methodList});
+    this.methodAdd({
+      id: 'methodList',
+      method: this.methodList,
+      validator: z.object({}),
+    });
   }
 
   // This is called after all packages and classes have been initialized.
@@ -72,6 +76,10 @@ export default class Base {
     overwrite = false,
     authRequired = this.authenticationRequired,
   }) {
+    if (!validator || !validator.parse) {
+      throw new Error('Validator is required. It must be a zod object.');
+    }
+
     if (!id) {
       throw new Error('Method id is required.');
     }
@@ -97,7 +105,7 @@ export default class Base {
       registry.registerPath({
         method: 'post',
         path: `/api/${this.packageName}/${this.className}/${id}`,
-        summary: id,
+        summary: `${this.className}/${id}`,
         request: {
           body: {
             content: {
@@ -106,9 +114,7 @@ export default class Base {
               },
             },
           },
-          //params: validator,
         },
-        // TODO
         responses: {
           200: {
             type: 'object',
