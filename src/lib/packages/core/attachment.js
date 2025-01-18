@@ -11,6 +11,8 @@ import {mkdir} from 'fs/promises';
 import {pipeline} from 'stream/promises';
 import {Readable} from 'stream';
 
+import {z} from 'zod';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
@@ -101,12 +103,20 @@ export default class Attachment extends Table {
       columnType: 'boolean',
     });
 
-    this.methodAdd('upload', this.upload);
-    this.methodAdd('download', this.download);
+    this.methodAdd({
+      id: 'upload',
+      method: this.upload,
+      validator: z.object({}),
+    });
+    this.methodAdd({
+      id: 'download',
+      method: this.download,
+      validator: z.object({}),
+    });
   }
 
   async download({recordId, req}) {
-    const record = await this.recordGet({recordId});
+    const record = await this.recordGet({recordId, req});
 
     if (!record) {
       req.res.status(404);

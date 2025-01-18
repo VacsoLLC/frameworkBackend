@@ -73,6 +73,15 @@ async function handlerFunction(packages, limiter, req, res) {
     };
   }
 
+  // key names that start with _ are not allowed to be called via the api
+  if (Object.keys(req.body || {}).some((key) => key.startsWith('_'))) {
+    limiter.penalty(ip, 10);
+    res.status(500);
+    return {
+      message: 'Arguments starting with _ can not be specified remotely.',
+    };
+  }
+
   // Authentication check
   if (
     packages[req.params.packageName][req.params.className].methodAuthRequired({
@@ -127,7 +136,7 @@ async function handlerFunction(packages, limiter, req, res) {
       );
 
       if (res.sent) {
-        // the method sent its own response. This is only used for attachment download currently.
+        // the method sent its own response. This is only used for attachment download & openapi currently.
         return;
       }
 

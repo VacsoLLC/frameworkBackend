@@ -1,13 +1,18 @@
 import Base from '../base.js';
+import {z} from 'zod';
 
 export default class Search extends Base {
   constructor(args) {
-    super({ className: 'search', ...args });
+    super({className: 'search', ...args});
     this.indexName = 'framework';
     this.host = process.env.MARQO_HOST || '127.0.0.1';
     this.port = 8882;
     this.connected = false;
-    this.methodAdd('search', this.search);
+    this.methodAdd({
+      id: 'search',
+      method: this.search,
+      validator: z.object({query: z.string()}),
+    });
   }
 
   async init() {
@@ -35,7 +40,7 @@ export default class Search extends Base {
             body: JSON.stringify({
               model: 'hf/e5-base-v2',
             }),
-          }
+          },
         );
 
         if (response.status === 409) {
@@ -54,7 +59,7 @@ export default class Search extends Base {
       } catch (error) {
         if (attempt === maxRetries - 1) {
           console.log(
-            `Failed to initialize marqo search index after ${maxRetries} attempts: ${error.message}`
+            `Failed to initialize marqo search index after ${maxRetries} attempts: ${error.message}`,
           );
         }
 
@@ -63,7 +68,7 @@ export default class Search extends Base {
     }
   }
 
-  async search({ query, filter = null, req }) {
+  async search({query, filter = null, req}) {
     console.log('Search query:', query);
 
     const [[queryModified, filterModified]] =
@@ -86,7 +91,7 @@ export default class Search extends Base {
             filter: filterModified || filter,
             limit: 100,
           }),
-        }
+        },
       );
 
       if (!response.ok) {
@@ -94,14 +99,14 @@ export default class Search extends Base {
       }
 
       const data = await response.json();
-      return { results: data.hits };
+      return {results: data.hits};
     } catch (error) {
       console.error('Error searching Marqo:', error);
       throw error;
     }
   }
 
-  async updateIndex({ id, action, data }) {
+  async updateIndex({id, action, data}) {
     console.log(`Updating index for ${id}, action: ${action}`);
 
     try {
@@ -113,7 +118,7 @@ export default class Search extends Base {
             headers: {
               'Content-Type': 'application/json',
             },
-          }
+          },
         );
 
         if (!response.ok) {
@@ -122,7 +127,7 @@ export default class Search extends Base {
 
         return await response.json();
       } else {
-        const documentData = { ...data, _id: id };
+        const documentData = {...data, _id: id};
 
         for (const key in documentData) {
           if (documentData[key] === null || documentData[key] === undefined) {
@@ -142,7 +147,7 @@ export default class Search extends Base {
               documents: [documentData],
               tensorFields: ['searchText'],
             }),
-          }
+          },
         );
 
         if (!response.ok) {

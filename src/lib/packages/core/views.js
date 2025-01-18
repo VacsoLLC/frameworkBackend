@@ -2,6 +2,7 @@ import Table from '../table.js';
 import {systemUser} from '../../../util.js';
 import {fileURLToPath} from 'url';
 import {dirname, join} from 'path';
+import {z} from 'zod';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -89,8 +90,16 @@ export default class Views extends Table {
         return req.user.id;
       },
     });
-    this.methodAdd('getActiveViews', this.getActiveViews);
-    this.methodAdd('logUser', this.logUser);
+
+    this.methodAdd({
+      id: 'logUser',
+      method: this.logUser,
+      validator: z.object({
+        db: z.string(),
+        table: z.string(),
+        row: z.coerce.number(),
+      }),
+    });
   }
 
   async logUser(args) {
@@ -107,17 +116,16 @@ export default class Views extends Table {
     const startTime = (currentEntry?.end_time ?? 0) / 1000;
     const diff = currentTime - startTime;
     if (currentEntry && diff < 60) {
-        await this.recordUpdate({
-          recordId: currentEntry.id,
-          data: {
-            ...currentEntry,
-            end_time: Date.now(),
-          },
-          req: args.req,
-          audit: false,
-        });
+      await this.recordUpdate({
+        recordId: currentEntry.id,
+        data: {
+          ...currentEntry,
+          end_time: Date.now(),
+        },
+        req: args.req,
+        audit: false,
+      });
     } else {
-
       await this.recordCreate({
         data: {
           db: args.db,
@@ -129,7 +137,7 @@ export default class Views extends Table {
       });
     }
     const result = await this.getActiveViews(args);
-    return result
+    return result;
   }
 
   async getActiveViews(args) {
@@ -140,7 +148,7 @@ export default class Views extends Table {
       columns: this.columns,
       user: args?.req?.user,
       includeJoins: true,
-      returnPasswords: false,
+      _returnPasswords: false,
     });
     query = query
       .where({
@@ -149,7 +157,7 @@ export default class Views extends Table {
         row: args.row,
       })
       .where('end_time', '>', currentTime - 20 * 1000);
-    query = this.selectJoin({query})
+    query = this.selectJoin({query});
     query.groupBy('author');
     const views = await this.queryRun(query);
     return {

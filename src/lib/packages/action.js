@@ -42,15 +42,18 @@ export default class Action {
       noOp: false,
       type: 'action', // currently supports 'action', 'table' and 'attach'. Attach is a special type of action that is used to attach a file to a record. table are table level actions.
       touch: true, // display on touch screen interfaces
+      validator: null, // a Zod schema to validate the input
       // Override the defaults with the provided values
       ...action,
     };
 
     // if method is a function, add it to the class.
     if (typeof newAction.method == 'function') {
-      action.thisTable.methodAdd(newAction.id, newAction.method, (args) =>
-        this.validate(args),
-      );
+      action.thisTable.methodAdd({
+        id: newAction.id,
+        method: newAction.method,
+        validator: newAction.validator,
+      });
     } else if (newAction.method === null) {
       newAction.noOp = true;
     } else {
@@ -103,35 +106,7 @@ export default class Action {
     }
   }
 
-  async validate({args}) {
-    if (!this.inputs || this.inputs.length == 0) return; // no inputs, no validations
-
-    const errors = [];
-
-    for (const input in this.inputs) {
-      if (this.inputs[input].required && !args[input]) {
-        errors.push(`The ${input} field is required.`);
-      }
-      if (
-        this.inputs[input].validations &&
-        Array.isArray(this.inputs[input].validations)
-      ) {
-        for (const validate of this.inputs[input].validations) {
-          const result = await validate.call(this.thisTable, {
-            args,
-            value: args[input],
-          });
-          if (result) {
-            errors.push(result);
-          }
-        }
-      }
-    }
-
-    if (errors.length > 0) {
-      throw new Error(errors.join(' '));
-    }
-  }
+ 
 
   toJSON() {
     const that = {...this};

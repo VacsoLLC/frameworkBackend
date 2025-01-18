@@ -1,8 +1,9 @@
 import humanizeDuration from 'humanize-duration';
 import Table from '../table.js';
-import { systemRequest } from '../../../util.js';
-import path from 'path'
-import { fileURLToPath } from 'url';
+import {systemRequest} from '../../../util.js';
+import path from 'path';
+import {fileURLToPath} from 'url';
+import {z} from 'zod';
 
 export default class Invite extends Table {
   constructor(args) {
@@ -56,7 +57,15 @@ export default class Invite extends Table {
       },
     });
 
-    this.methodAdd('signUpInviteCreate', this.signUpInviteCreate, null, false, false);
+    this.methodAdd({
+      id: 'signUpInviteCreate',
+      method: this.signUpInviteCreate,
+      validator: z.object({
+        email: z.string().email(),
+        fromUser: z.boolean().optional(),
+      }),
+      authRequired: false,
+    });
   }
 
   async signUpInviteCreate({email, fromUser, req}) {
@@ -64,21 +73,27 @@ export default class Invite extends Table {
     const {enabled, expiryInHours, allowedDomains} = this.config.signUp;
 
     if (!enabled) {
-        throw new Error('Sign up is disabled');
+      throw new Error('Sign up is disabled');
     }
-    
-    if(allowedDomains.length > 0 && allowedDomains.filter(domain => email.includes(domain)).length === 0) {
-        throw new Error('Invalid email')
+
+    if (
+      allowedDomains.length > 0 &&
+      allowedDomains.filter((domain) => email.includes(domain)).length === 0
+    ) {
+      throw new Error('Invalid email');
     }
 
     try {
-      const user = await this.packages.core.user.recordGet({where: {email}});
+      const user = await this.packages.core.user.recordGet({
+        where: {email},
+        req,
+      });
       if (user) {
         throw new Error('Email already exists');
       }
       // generate token
       const token = crypto.randomUUID();
-      const expiry = new Date().getTime() + expiryInHours * 60 * 60 * 1000
+      const expiry = new Date().getTime() + expiryInHours * 60 * 60 * 1000;
       const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
       // create invite
@@ -89,7 +104,7 @@ export default class Invite extends Table {
           expires: expiry,
           used: false,
         },
-        req: fromUser ? req : systemRequest(this)
+        req: fromUser ? req : systemRequest(this),
       });
       if (!invite) {
         throw new Error('Invite not created');
@@ -100,7 +115,7 @@ export default class Invite extends Table {
       const emailContent = {
         body: emailBodyTemplate({
           signUpLink: `${baseURL ?? 'https://localhost:5173'}/set-password?token=${token}`,
-          expiryInHours
+          expiryInHours,
         }),
         subject: 'Email address validation & account creation',
         to: email,
@@ -109,7 +124,7 @@ export default class Invite extends Table {
         email: emailContent,
         provider: this.config.email.defaultMailbox,
       });
-      return {message: 'Sign up link is sent to email'}
+      return {message: 'Sign up link is sent to email'};
     } catch (error) {
       throw new Error(error);
     }

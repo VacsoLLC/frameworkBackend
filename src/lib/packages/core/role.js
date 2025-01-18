@@ -2,7 +2,7 @@ import Table from '../table.js';
 
 export default class Role extends Table {
   constructor(args) {
-    super({ name: 'Role', className: 'role', ...args });
+    super({name: 'Role', className: 'role', ...args});
 
     this.rolesWriteAdd('Admin');
 
@@ -85,7 +85,7 @@ export default class Role extends Table {
       return this.nameToIDCache[name];
     }
 
-    const result = await this.recordGet({ where: { name } });
+    const result = await this.recordGet({where: {name}});
 
     this.nameToIDCache[name] = result.id;
 
