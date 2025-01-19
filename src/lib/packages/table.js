@@ -659,7 +659,6 @@ export default class Table extends Base {
 
       query = query.orderByRaw(`${sortMapCase} ${sortOrder}`);
     } else {
-      //    query = query.orderBy(sortField, sortOrder);
       query = query.orderBy(sortField, sortOrder);
     }
 
