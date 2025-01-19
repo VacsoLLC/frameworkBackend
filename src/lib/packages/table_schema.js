@@ -3,74 +3,105 @@ import {extendZodWithOpenApi} from '@asteasolutions/zod-to-openapi';
 
 extendZodWithOpenApi(z);
 
-// Common reusable schemas
+export class TableSchema {
+  constructor(defaultSortColumn = 'id', defaultSortOrder = 'DESC') {
+    this.defaultSortColumn = defaultSortColumn;
+    this.defaultSortOrder = defaultSortOrder;
+    this.initializeSchemas();
+  }
 
-const recordId = z.coerce.number({
-  required_error: 'Record ID is required',
-  invalid_type_error: 'Record ID must be a number',
-});
+  // Common reusable schemas
+  get recordId() {
+    return z.coerce.number({
+      required_error: 'Record ID is required',
+      invalid_type_error: 'Record ID must be a number',
+    });
+  }
 
-const data = z.record(z.any());
+  get data() {
+    return z.record(z.any());
+  }
 
-const where = z.union([z.record(z.any()), z.array(z.any())]).optional();
+  get where() {
+    return z.union([z.record(z.any()), z.array(z.any())]).optional();
+  }
 
-const sortField = z.string().optional();
+  get sortField() {
+    return z.string().optional().default(this.defaultSortColumn);
+  }
 
-const sortOrder = z.enum(['ASC', 'DESC']).optional();
+  get sortOrder() {
+    return z.enum(['ASC', 'DESC']).optional().default(this.defaultSortOrder);
+  }
 
-const limit = z.coerce.number().positive().optional();
+  get limit() {
+    return z.coerce.number().positive().optional().default(20);
+  }
 
-const offset = z.coerce.number().min(0).optional();
+  get offset() {
+    return z.coerce.number().min(0).optional().default(0);
+  }
 
-const columns = z.array(z.string()).optional();
+  get columns() {
+    return z.array(z.string()).optional().default([]);
+  }
 
-// Schema for recordCreate method
-export const recordCreate = z
-  .object({
-    data,
-  })
-  .openapi('recordCreate');
+  initializeSchemas() {
+    // Schema for recordCreate method
+    this.recordCreate = z
+      .object({
+        data: this.data,
+      })
+      .openapi('recordCreate');
 
-// Schema for recordUpdate method
-export const recordUpdate = z.object({
-  recordId,
-  data,
-});
+    // Schema for recordUpdate method
+    this.recordUpdate = z.object({
+      recordId: this.recordId,
+      data: this.data,
+    });
 
-// Schema for recordDelete method
-export const recordDelete = z.object({
-  recordId,
-});
+    // Schema for recordDelete method
+    this.recordDelete = z.object({
+      recordId: this.recordId,
+    });
 
-// Schema for recordGet method
-export const recordGet = z.object({
-  recordId: recordId.optional(),
-  where,
-});
+    // Schema for recordGet method
+    this.recordGet = z.object({
+      recordId: this.recordId.optional(),
+      where: this.where,
+    });
 
-// Schema for rowsGet method
-export const rowsGet = z.object({
-  where,
-  sortField,
-  sortOrder,
-  limit,
-  offset,
+    // Schema for rowsGet method
+    this.rowsGet = z.object({
+      where: this.where,
+      sortField: this.sortField,
+      sortOrder: this.sortOrder,
+      limit: this.limit,
+      offset: this.offset,
+      returnCount: z.boolean().optional().default(false),
+      columns: this.columns,
+    });
 
-  returnCount: z.boolean().optional(),
+    // Schema for schemaGet method
+    this.schemaGet = z.object({
+      recordId: this.recordId.optional(),
+    });
 
-  columns,
-});
+    // Schema for actionsGet method
+    this.actionsGet = z.object({
+      id: this.recordId.optional(),
+      type: z.enum(['table', 'record']).optional(),
+    });
 
-// Schema for schemaGet method
-export const schemaGet = z.object({
-  recordId: recordId.optional(),
-});
+    // Schema for childrenGet method
+    this.childrenGet = z.object({});
+  }
 
-// Schema for actionsGet method
-export const actionsGet = z.object({
-  id: recordId.optional(),
-  type: z.enum(['table', 'record']).optional(),
-});
+  // Method to create a new instance with a different default sort
+  withDefaultSort(defaultSort) {
+    return new TableSchema(defaultSort);
+  }
+}
 
-// Schema for childrenGet method
-export const childrenGet = z.object({});
+// Create a default instance with 'id' as the default sort
+export const defaultSchema = new TableSchema();

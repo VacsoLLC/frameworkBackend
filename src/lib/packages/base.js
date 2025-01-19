@@ -168,14 +168,15 @@ export default class Base {
       );
     }
 
+    let parsedArgs = {};
     try {
-      this.methods[id].validator.parse(args);
+      parsedArgs = this.methods[id].validator.parse(args);
     } catch (e) {
       throw new Error(e.errors.map((error) => error.message).join('. '));
     }
 
     try {
-      return await this.methods[id].method.call(this, {req, ...args});
+      return await this.methods[id].method.call(this, {req, ...parsedArgs});
     } catch (e) {
       if (e instanceof Error) {
         throw e.message;

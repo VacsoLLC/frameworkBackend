@@ -98,6 +98,7 @@ export default class Column {
     readOnly = false, // Field is read only and can not be modified in the gui
 
     options = [],
+    customSort = false, // If an object is passed, it will be used to sort the list
 
     rolesRead = null, // Users must have one of these roles to read this column. If blank, the table level permissions apply
     rolesWrite = null, // Users must have one of these roles to write to this column. If blank, the table level permissions apply
@@ -215,6 +216,7 @@ export default class Column {
     this.onCreateOrUpdate = onCreateOrUpdate;
     this.listStyle = listStyle;
     this.options = options;
+    this.customSort = customSort;
     this.readOnly = readOnly;
     this.referenceCreate = referenceCreate;
     this.queryModifier = queryModifier;
