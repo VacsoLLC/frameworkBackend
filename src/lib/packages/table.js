@@ -5,7 +5,7 @@ import Base from './base.js';
 import Column from './column.js';
 import Action from './action.js';
 
-import * as validation from './table_schema.js';
+import {TableSchema} from './table_schema.js';
 
 import z from 'zod';
 
@@ -22,6 +22,13 @@ const knexConnected = {};
 export default class Table extends Base {
   constructor(...args) {
     super(...args);
+
+    this.defaultSortColumn = args[0].defaultSortColumn || 'id';
+    this.defaultSortOrder = args[0].defaultSortOrder || 'DESC';
+    this.schema = new TableSchema(
+      this.defaultSortColumn,
+      this.defaultSortOrder,
+    );
 
     this.isTable = true;
 
@@ -62,7 +69,7 @@ export default class Table extends Base {
       helpText: 'Update the record and stay here',
       rolesExecute: this.rolesWrite,
       touch: false,
-      validator: validation.recordUpdate,
+      validator: this.schema.recordUpdate,
     });
 
     this.actionAdd({
@@ -72,7 +79,7 @@ export default class Table extends Base {
       rolesExecute: this.rolesWrite,
       close: true,
       touch: false,
-      validator: validation.recordUpdate,
+      validator: this.schema.recordUpdate,
     });
 
     this.actionAdd({
@@ -97,7 +104,7 @@ export default class Table extends Base {
       color: 'danger',
       rolesExecute: this.rolesDelete,
       touch: false,
-      validator: validation.recordDelete,
+      validator: this.schema.recordDelete,
     });
 
     this.actionAdd({
@@ -118,42 +125,42 @@ export default class Table extends Base {
     this.methodAdd({
       id: 'recordGet',
       method: this.recordGet,
-      validator: validation.recordGet,
+      validator: this.schema.recordGet,
     });
     this.methodAdd({
       id: 'recordCreate',
       method: this.recordCreate,
-      validator: validation.recordCreate,
+      validator: this.schema.recordCreate,
     });
     this.methodAdd({
       id: 'recordUpdate',
       method: this.recordUpdate,
-      validator: validation.recordUpdate,
+      validator: this.schema.recordUpdate,
     });
     this.methodAdd({
       id: 'recordDelete',
       method: this.recordDelete,
-      validator: validation.recordDelete,
+      validator: this.schema.recordDelete,
     });
     this.methodAdd({
       id: 'rowsGet',
       method: this.rowsGet,
-      validator: validation.rowsGet,
+      validator: this.schema.rowsGet,
     });
     this.methodAdd({
       id: 'schemaGet',
       method: this.schemaGet,
-      validator: validation.schemaGet,
+      validator: this.schema.schemaGet,
     });
     this.methodAdd({
       id: 'actionsGet',
       method: this.actionsGet,
-      validator: validation.actionsGet,
+      validator: this.schema.actionsGet,
     });
     this.methodAdd({
       id: 'childrenGet',
       method: this.childrenGet,
-      validator: validation.childrenGet,
+      validator: this.schema.childrenGet,
     });
   }
 
@@ -641,7 +648,20 @@ export default class Table extends Base {
     query = this.selectColumns({columns, user: req?.user, query});
 
     // apply sorting, limits, and offsets
-    query = query.orderBy(sortField, sortOrder);
+    // sort
+    if (this.columns[sortField]?.customSort) {
+      const sortMapCase =
+        `CASE ${sortField} ` +
+        Object.entries(this.columns[sortField]?.customSort)
+          .map(([status, order]) => `WHEN '${status}' THEN ${order}`)
+          .join(' ') +
+        ` ELSE 10000 END`;
+
+      query = query.orderByRaw(`${sortMapCase} ${sortOrder}`);
+    } else {
+      query = query.orderBy(sortField, sortOrder);
+    }
+
     if (limit) query = query.limit(limit);
     if (offset) query = query.offset(offset);
 
