@@ -11,6 +11,7 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "@asteasolutions/zod-to-openapi": "^7.3.0",
     "@azure/identity": "^4.5.0",
     "@azure/msal-node": "^2.7.0",
     "@fastify/multipart": "^9.0.1",
@@ -32,6 +33,7 @@
     "rate-limiter-flexible": "^5.0.4",
     "saml2-js": "^4.0.2",
     "smtp-server": "^3.13.4",
+    "zod": "^3.24.1",
     "zxcvbn": "^4.4.2"
   },
   "devDependencies": {

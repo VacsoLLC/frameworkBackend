@@ -75,7 +75,7 @@ export default class Column {
     joinDisplay = false, // The column to display from the joined table
     joinDisplayAlias = false, // The alias for the column to display from the joined table
     referenceCreate = false, // If true, shows a create button next to the reference field
-    queryModifier = false, // Can be used to modify the query for references before it is run. Useful for filtering in fancy ways.
+    queryModifier, // Can be used to modify the query for references before it is run. Useful for filtering in fancy ways.
 
     display = true, // display this in the gui
     friendlyName, // The display of the column in the GUI

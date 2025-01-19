@@ -7,6 +7,8 @@ import humanizeDuration from 'humanize-duration';
 
 import {RateLimiterMemory} from 'rate-limiter-flexible';
 
+import {z} from 'zod';
+
 export default class UserTable extends Table {
   constructor(args) {
     super({name: 'User', className: 'user', ...args});
@@ -155,6 +157,10 @@ export default class UserTable extends Table {
           requiresStrengthCheck: false,
         },
       },
+      validator: z.object({
+        Password: z.string(),
+        'Verify Password': z.string(),
+      }),
     });
 
     // A special user that is used for system actions
@@ -188,8 +194,11 @@ export default class UserTable extends Table {
       className: 'user_role',
     }); //
 
-    this.methodAdd('findUserByPhoneNumber', this.findUserByPhoneNumber);
-    // this.methodAdd('generatePasswordResetToken', this.generatePasswordResetToken);
+    this.methodAdd({
+      id: 'findUserByPhoneNumber',
+      method: this.findUserByPhoneNumber,
+      validator: z.object({recordId: z.string()}),
+    });
   }
 
   async findUserByPhoneNumber({recordId, req}) {
@@ -262,13 +271,13 @@ export default class UserTable extends Table {
   }
 
   async resetForgottenPassword({token, password, req}) {
-    const {requiredPasswordStrength} = this.config.general
+    const {requiredPasswordStrength} = this.config.general;
     const passwordStrength = getPasswordStrength(password);
 
     if (passwordStrength.score < requiredPasswordStrength) {
       throw new Error('Password should be strong');
     }
-    
+
     const user = await this.get({
       where: {passwordResetToken: token},
     });
@@ -300,17 +309,20 @@ export default class UserTable extends Table {
     const {requiredPasswordStrength} = this.config.general;
 
     const passwordScore = getPasswordStrength(password);
-    
+
     if (passwordScore.score < requiredPasswordStrength) {
       throw new Error('Password should be strong');
     }
-    const invite = await this.packages.core.invite.recordGet({where: {token}});
+    const invite = await this.packages.core.invite.recordGet({
+      where: {token},
+      req,
+    });
 
     if (!invite || invite.used) {
       throw new Error('Invalid token, or token has already been used');
     }
 
-    const user = await this.recordGet({where: {email: invite.email}});
+    const user = await this.recordGet({where: {email: invite.email}, req});
 
     if (user) {
       throw new Error('User already exists');
@@ -473,7 +485,7 @@ export default class UserTable extends Table {
   }
 
   async get({where}) {
-    const user = await this.recordGet({where, returnPasswords: true});
+    const user = await this.recordGet({where, _returnPasswords: true});
 
     if (!user) {
       return false;

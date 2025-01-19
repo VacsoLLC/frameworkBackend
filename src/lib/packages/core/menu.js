@@ -1,9 +1,15 @@
 import Base from '../base.js';
 
+import {z} from 'zod';
+
 export default class Menu extends Base {
   constructor(args) {
-    super({ className: 'menu', ...args });
-    this.methodAdd('getAllMenuItems', this.getAllMenuItems);
+    super({className: 'menu', ...args});
+    this.methodAdd({
+      id: 'getAllMenuItems',
+      method: this.getAllMenuItems,
+      validator: z.object({}),
+    });
   }
 
   async extractMenuItems(req, res) {
@@ -29,7 +35,7 @@ export default class Menu extends Base {
             continue;
           }
 
-          let outputitem = { ...item };
+          let outputitem = {...item};
           if (item.filter && typeof item.filter == 'function') {
             outputitem.filter = item.filter(req);
           }

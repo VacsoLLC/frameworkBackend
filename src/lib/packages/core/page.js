@@ -1,4 +1,5 @@
 import Table from '../table.js';
+import {z} from 'zod';
 
 export default class Page extends Table {
   constructor(args) {
@@ -47,6 +48,7 @@ export default class Page extends Table {
     this.actionAdd({
       label: 'Attach File(s)',
       type: 'attach',
+      validator: z.object({}),
     });
 
     this.addMenuItem({

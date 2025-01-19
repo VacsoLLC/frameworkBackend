@@ -1,4 +1,17 @@
 // All framework classes must extend base. It provides a common interface.
+import {registry} from '../registry.js';
+import {z} from 'zod';
+import {extendZodWithOpenApi} from '@asteasolutions/zod-to-openapi';
+
+extendZodWithOpenApi(z);
+
+const responseObject = z
+  .object({
+    success: z.boolean(),
+    message: z.string(),
+    data: z.object(),
+  })
+  .openapi('response');
 export default class Base {
   constructor({
     className,
@@ -26,7 +39,11 @@ export default class Base {
     this.methods = {}; // This is a list of all the methods in this class that are accessible via the API. use methodAdd to add a method.
     this.isTable = false;
 
-    this.methodAdd('methodList', this.methodList);
+    this.methodAdd({
+      id: 'methodList',
+      method: this.methodList,
+      validator: z.object({}),
+    });
   }
 
   // This is called after all packages and classes have been initialized.
@@ -40,24 +57,31 @@ export default class Base {
   }
 
   /**
-   * Adds a method to the methods collection.
+   * Expose a method to the API.
    *
-   * @param {string} id - The unique identifier for the method.
-   * @param {Function} method - The method to be added.
-   * @param {Function|null} [validationFunction=null] - An optional validation function for the method.
-   * @param {boolean} [overwrite=false] - Whether to overwrite an existing method with the same id.
-   * @param {boolean} [authRequired=this.authenticationRequired] - Whether authentication is required to access the method. Defaults to the table value.
-   * @throws {Error} If the id is not provided.
+   * @param {Object} options - The options for adding the method.
+   * @param {string} options.id - The unique identifier for the method.
+   * @param {Function} options.method - The method function to be added.
+   * @param {Object} [options.validator=null] - The validator object (must be a zod object).
+   * @param {boolean} [options.overwrite=false] - Flag to allow overwriting an existing method.
+   * @param {boolean} [options.authRequired=this.authenticationRequired] - Flag to indicate if authentication is required.
+   *
+   * @throws {Error} If the validator is not provided or does not have a parse method.
+   * @throws {Error} If the method id is not provided.
    * @throws {Error} If the method is not provided or is not a function.
-   * @throws {Error} If a method with the same id already exists and overwrite is false.
+   * @throws {Error} If the method id already exists and overwrite is not set to true.
    */
-  methodAdd(
+  methodAdd({
     id,
     method,
-    validationFunction = null,
+    validator = null,
     overwrite = false,
     authRequired = this.authenticationRequired,
-  ) {
+  }) {
+    if (!validator || !validator.parse) {
+      throw new Error('Validator is required. It must be a zod object.');
+    }
+
     if (!id) {
       throw new Error('Method id is required.');
     }
@@ -74,9 +98,55 @@ export default class Base {
 
     this.methods[id] = {
       method,
-      validationFunction,
       authRequired,
+      validator,
     };
+
+    if (validator) {
+      registry.registerPath({
+        method: 'post',
+        path: `/api/${this.packageName}/${this.className}/${id}`,
+        summary: `${this.className}/${id}`,
+        request: {
+          body: {
+            content: {
+              'application/json': {
+                schema: validator,
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            type: 'object',
+            description: 'Successful response',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    data: {
+                      type: 'object',
+                      description:
+                        'The data returned from the function called.',
+                    },
+                    messages: {
+                      type: 'array',
+                      description:
+                        'Array of objects that contain status messages.',
+                    },
+                    navigate: {
+                      type: 'string',
+                      description: 'Redirect to this path',
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+    }
   }
 
   methodAuthRequired({req, id}) {
@@ -87,31 +157,32 @@ export default class Base {
     return true;
   }
 
-  async methodValidate({req, id, args}) {
-    if (this.methods[id].validationFunction) {
-      const errors = await this.methods[id].validationFunction({
-        req,
-        id,
-        args,
-      });
-      if (errors) {
-        return errors;
-      }
-    }
-  }
-
   async methodExecute(req, id, args) {
     if (!this.methods[id]) {
       return null;
     }
 
-    const errors = await this.methodValidate({req, id, args});
-
-    if (errors) {
-      throw new Error(errors.join(' '));
+    if (!this.methods[id].validator || !this.methods[id].validator.parse) {
+      throw new Error(
+        'No validator found for this function. Cannot execute methods without a validator.',
+      );
     }
 
-    return await this.methods[id].method.call(this, {req, ...args});
+    try {
+      this.methods[id].validator.parse(args);
+    } catch (e) {
+      throw new Error(e.errors.map((error) => error.message).join('. '));
+    }
+
+    try {
+      return await this.methods[id].method.call(this, {req, ...args});
+    } catch (e) {
+      if (e instanceof Error) {
+        throw e.message;
+      } else {
+        throw e;
+      }
+    }
   }
 
   methodList(req, id, args) {

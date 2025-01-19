@@ -3,9 +3,9 @@ import fs from 'fs/promises';
 
 export default class DataImporter extends Base {
   constructor(args) {
-    super({ className: 'importer', ...args });
+    super({className: 'importer', ...args});
     this.importedRecords = new Map();
-    this.methodAdd('importData', this.importData);
+    // this is not exposed to the outside world.
   }
 
   /**
@@ -15,7 +15,7 @@ export default class DataImporter extends Base {
    * @param {Object} options.req - The request object
    * @returns {Promise<Object>} A message indicating the completion of the import process
    */
-  async importData({ jsonPath, req }) {
+  async importData({jsonPath, req}) {
     console.log('Starting import of data...');
     const jsonData = await fs.readFile(jsonPath, 'utf-8');
     const importData = JSON.parse(jsonData);
@@ -34,7 +34,7 @@ export default class DataImporter extends Base {
     }
 
     console.log('Data import completed');
-    return { message: 'Data import completed successfully' };
+    return {message: 'Data import completed successfully'};
   }
 
   /**
@@ -49,7 +49,7 @@ export default class DataImporter extends Base {
     const EntityClass = this.packages[packageName][className];
 
     console.log(
-      `Importing ${entity.name} (ignoreDuplicates: ${ignoreDuplicates})`
+      `Importing ${entity.name} (ignoreDuplicates: ${ignoreDuplicates})`,
     );
 
     for (const record of entity.records) {
@@ -58,7 +58,7 @@ export default class DataImporter extends Base {
         record,
         entity.name,
         req,
-        ignoreDuplicates
+        ignoreDuplicates,
       );
     }
   }
@@ -77,7 +77,7 @@ export default class DataImporter extends Base {
     recordData,
     entityName,
     req,
-    ignoreDuplicates
+    ignoreDuplicates,
   ) {
     const resolvedData = await this.resolveReferences(recordData);
 
@@ -94,13 +94,13 @@ export default class DataImporter extends Base {
       }
       this.importedRecords
         .get(entityName)
-        .push({ ...resolvedData, id: result.id });
+        .push({...resolvedData, id: result.id});
     } catch (error) {
       if (ignoreDuplicates && error.code === 'ER_DUP_ENTRY') {
         console.log(
           `Ignoring duplicate entry for ${entityName}: ${JSON.stringify(
-            resolvedData
-          )}`
+            resolvedData,
+          )}`,
         );
       } else {
         console.error(`Error importing ${entityName} record:`, error);
@@ -141,8 +141,8 @@ export default class DataImporter extends Base {
     const importedRecords = this.importedRecords.get(ref.$ref) || [];
     const matchingRecord = importedRecords.find((record) =>
       Object.entries(ref).every(
-        ([key, value]) => key !== '$ref' && record[key] === value
-      )
+        ([key, value]) => key !== '$ref' && record[key] === value,
+      ),
     );
 
     if (matchingRecord) {
@@ -150,9 +150,11 @@ export default class DataImporter extends Base {
     }
 
     const whereClause = Object.fromEntries(
-      Object.entries(ref).filter(([key]) => key !== '$ref')
+      Object.entries(ref).filter(([key]) => key !== '$ref'),
     );
-    const existingRecord = await EntityClass.recordGet({ where: whereClause });
+    const existingRecord = await EntityClass.recordGet({
+      where: whereClause,
+    });
 
     if (existingRecord) {
       return existingRecord.id;
