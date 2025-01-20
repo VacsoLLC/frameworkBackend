@@ -58,6 +58,7 @@ export default class Page extends Table {
       navigate: '/core/page',
       order: 99,
       view: 'pages',
+      roles: ['admin'],
     });
   }
 }

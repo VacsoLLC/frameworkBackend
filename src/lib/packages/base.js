@@ -176,12 +176,12 @@ export default class Base {
     }
 
     try {
-      return await this.methods[id].method.call(this, {req, ...parsedArgs});
+      return await this.methods[id].method.call(this, {...args, ...parsedArgs});
     } catch (e) {
       if (e instanceof Error) {
-        throw e.message;
-      } else {
         throw e;
+      } else {
+        throw new Error(e);
       }
     }
   }

@@ -258,7 +258,7 @@ export default class UserTable extends Table {
 
     const passwordStrength = getPasswordStrength(Password);
     if (passwordStrength < requiredPasswordStrength) {
-      throw new Error('Password should be strong');
+      throw new Error('Password does not meet complexity requirements.');
     }
 
     return await this.recordUpdate({
@@ -275,7 +275,7 @@ export default class UserTable extends Table {
     const passwordStrength = getPasswordStrength(password);
 
     if (passwordStrength.score < requiredPasswordStrength) {
-      throw new Error('Password should be strong');
+      throw new Error('Password does not meet complexity requirements.');
     }
 
     const user = await this.get({
@@ -311,7 +311,7 @@ export default class UserTable extends Table {
     const passwordScore = getPasswordStrength(password);
 
     if (passwordScore.score < requiredPasswordStrength) {
-      throw new Error('Password should be strong');
+      throw new Error('Password does not meet complexity requirements.');
     }
     const invite = await this.packages.core.invite.recordGet({
       where: {token},
