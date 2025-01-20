@@ -55,7 +55,7 @@ export default class Table extends Base {
     this.dbDotTable = `${this.packageName}.${this.className}`;
 
     // by default we index all tables. set index: false if you dont want it indexed.
-    if (!Object.hasOwnProperty(args[0], 'index')) {
+    if (!args[0].hasOwnProperty('index')) {
       this.index = true;
     } else {
       this.index = args[0].index;
@@ -257,6 +257,16 @@ export default class Table extends Base {
       primaryKey: true,
       order: 5000, // Force ID field to the start of the table. The default value is 10,000.
       ...this.options.id,
+    });
+
+    this.columnAdd({
+      friendlyName: 'Deleted at',
+      columnName: 'deleted_at',
+      columnType: 'datetime',
+      help: 'The time the record was deleted',
+      defaultValue: null,
+      readOnly: true,
+      ...(this.options.deleted_at ?? {}),
     });
 
     // create columns if nessary
@@ -599,6 +609,7 @@ export default class Table extends Base {
     columns = [],
     queryModifier,
     queryModifierArgs = {},
+    includeDeleted = true,
     req,
   }) {
     let query = this.knex.from(this.dbDotTable);
@@ -621,6 +632,10 @@ export default class Table extends Base {
       }
     } else if (where) {
       query = query.where(this._addTableToWhere(where, this.table));
+    }
+
+    if (!includeDeleted) {
+      query.whereNull(`${this.table}.deleted_at`);
     }
 
     // code based filters
@@ -736,7 +751,10 @@ export default class Table extends Base {
 
       const newAction = {...action.toJSON()};
 
-      newAction.disabled = await action.disabledCheck(record, req);
+      const isRecordDeleted = record.deleted_at !== null;
+
+      newAction.disabled =
+        (await action.disabledCheck(record, req)) || isRecordDeleted;
 
       filteredActions[key] = newAction;
     }
@@ -957,16 +975,21 @@ export default class Table extends Base {
     );
   }
 
-  async recordDelete({recordId, req}) {
+  async recordDelete({recordId, req, softDelete = true}) {
     await this.emit('recordDelete.before', {
       recordId,
       req,
     });
 
-    const query = this.knex
-      .from(this.dbDotTable)
-      .where('id', recordId)
-      .delete();
+    let query;
+    if (softDelete) {
+      query = this.knex
+        .from(this.dbDotTable)
+        .where('id', recordId)
+        .update({deleted_at: new Date().getTime()});
+    } else {
+      query = this.knex.from(this.dbDotTable).where('id', recordId).delete();
+    }
     const result = await this.queryRun(query);
 
     await this.audit({
@@ -988,7 +1011,17 @@ export default class Table extends Base {
   }
 
   // returns a single record. If multiple records are found, only the first is returned.
+<<<<<<< Updated upstream
   async recordGet({recordId, where, _returnPasswords = false, req}) {
+=======
+  async recordGet({
+    recordId,
+    where,
+    returnPasswords = false,
+    includeDeleted = true,
+    req,
+  }) {
+>>>>>>> Stashed changes
     if (!recordId && !where) {
       throw new Error('recordId or where is required to fetch a record.');
     }
@@ -999,11 +1032,13 @@ export default class Table extends Base {
       }
 
       // prepare the query
-      let query = this.knex
-        .from(this.dbDotTable)
-        .where(where)
-        .orderBy('id', 'desc')
-        .first();
+      let query = this.knex.from(this.dbDotTable).where(where);
+
+      if (!includeDeleted) {
+        query.whereNull(`${this.dbDotTable}.deleted_at`);
+      }
+
+      query.orderBy('id', 'desc').first();
 
       // Get columns to select
       query = this.selectColumns({

@@ -1,5 +1,5 @@
 import Table from '../table.js';
-import { systemUser } from '../../../util.js';
+import {systemUser} from '../../../util.js';
 
 export default class Audit extends Table {
   constructor(args) {
@@ -7,6 +7,7 @@ export default class Audit extends Table {
       name: 'Audit',
       className: 'audit',
       ...args,
+      index: false,
       options: {
         id: {
           hiddenList: true,
@@ -69,7 +70,7 @@ export default class Audit extends Table {
       ],
       hiddenCreate: true,
       tabName: 'Audit Created By',
-      defaultValue: ({ req }) => {
+      defaultValue: ({req}) => {
         return req.user.id;
       },
     });
