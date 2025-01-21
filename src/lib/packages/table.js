@@ -1011,9 +1011,6 @@ export default class Table extends Base {
   }
 
   // returns a single record. If multiple records are found, only the first is returned.
-<<<<<<< Updated upstream
-  async recordGet({recordId, where, _returnPasswords = false, req}) {
-=======
   async recordGet({
     recordId,
     where,
@@ -1021,7 +1018,6 @@ export default class Table extends Base {
     includeDeleted = true,
     req,
   }) {
->>>>>>> Stashed changes
     if (!recordId && !where) {
       throw new Error('recordId or where is required to fetch a record.');
     }
