@@ -79,6 +79,7 @@ export class TableSchema {
       limit: this.limit,
       offset: this.offset,
       returnCount: z.boolean().optional().default(false),
+      includeDeleted: z.boolean().optional().default(false),
       columns: this.columns,
     });
 

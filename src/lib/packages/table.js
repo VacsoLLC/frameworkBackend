@@ -266,6 +266,7 @@ export default class Table extends Base {
       help: 'The time the record was deleted',
       defaultValue: null,
       readOnly: true,
+      hiddenOnEmpty: true,
       ...(this.options.deleted_at ?? {}),
     });
 
@@ -609,7 +610,7 @@ export default class Table extends Base {
     columns = [],
     queryModifier,
     queryModifierArgs = {},
-    includeDeleted = true,
+    includeDeleted = false,
     req,
   }) {
     let query = this.knex.from(this.dbDotTable);
@@ -1014,7 +1015,7 @@ export default class Table extends Base {
   async recordGet({
     recordId,
     where,
-    returnPasswords = false,
+    _returnPasswords = false,
     includeDeleted = true,
     req,
   }) {
