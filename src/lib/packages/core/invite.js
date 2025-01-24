@@ -48,11 +48,11 @@ export default class Invite extends Table {
 
     this.manyToOneAdd({
       referencedTableName: 'user',
-      columnName: 'Requested by',
+      columnName: 'requestedby',
       displayColumns: [
         {
           columnName: 'name',
-          friendlyName: 'requested by',
+          friendlyName: 'Requested By',
           listStyle: 'nowrap',
           hiddenCreate: true,
         },
