@@ -68,6 +68,7 @@ export class TableSchema {
     // Schema for recordGet method
     this.recordGet = z.object({
       recordId: this.recordId.optional(),
+      includeDeleted: z.boolean().optional().default(false),
       where: this.where,
     });
 

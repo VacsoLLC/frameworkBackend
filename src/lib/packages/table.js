@@ -976,14 +976,14 @@ export default class Table extends Base {
     );
   }
 
-  async recordDelete({recordId, req, softDelete = true}) {
+  async recordDelete({recordId, req, _softDelete = true}) {
     await this.emit('recordDelete.before', {
       recordId,
       req,
     });
 
     let query;
-    if (softDelete) {
+    if (_softDelete) {
       query = this.knex
         .from(this.dbDotTable)
         .where('id', recordId)
