@@ -93,6 +93,19 @@ export default class Invite extends Table {
     });
   }
 
+  async recordCreate({data, req}) {
+    const user = await this.packages.core.user.recordGet({
+      where: {email:data.email},
+      req,
+    });
+
+    if (user) {
+      throw new Error('User with this email already exists');
+    }
+
+    return super.recordCreate({data, req});
+  }
+
   async inviteFromUI({recordId, req, email}) {
     const {baseURL} = this.config.general;
     const {expiryInHours} = this.config.signUp;
