@@ -89,6 +89,7 @@ export default class Column {
     hiddenRecord = false, // hide on create or update
     hiddenCreate = false,
     hiddenUpdate = false,
+    hiddenOnEmpty = false, // Hide this column if the value is empty
     defaultValue,
     onCreate = false,
     onUpdate = false,
@@ -208,6 +209,7 @@ export default class Column {
     this.hiddenRecord = hiddenRecord;
     this.hiddenCreate = hiddenCreate;
     this.hiddenUpdate = hiddenUpdate;
+    this.hiddenOnEmpty = hiddenOnEmpty;
     this.defaultValue = defaultValue;
     this.fieldWidth = fieldWidth;
     this.fieldType = fieldType;

@@ -93,8 +93,7 @@ export default class Backend {
       },
       function (err, address) {
         if (err) {
-          this.fastify.log.error(err);
-
+          console.log(err);
           process.exit(1);
         }
         // Server is now listening on ${address}

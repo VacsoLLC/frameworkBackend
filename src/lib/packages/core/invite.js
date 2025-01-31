@@ -25,6 +25,9 @@ export default class Invite extends Table {
       index: true,
       unique: true,
       helpText: 'Token',
+      hiddenList: true,
+      hiddenCreate: true,
+      readOnly: true,
     });
 
     this.columnAdd({
@@ -32,6 +35,7 @@ export default class Invite extends Table {
       friendlyName: 'Expires',
       columnType: 'datetime',
       helpText: 'Expiration Date',
+      hiddenCreate: true,
     });
 
     this.columnAdd({
@@ -39,15 +43,16 @@ export default class Invite extends Table {
       friendlyName: 'Used',
       columnType: 'boolean',
       helpText: 'Has this token been used?',
+      hiddenCreate: true,
     });
 
     this.manyToOneAdd({
       referencedTableName: 'user',
-      columnName: 'Requested by',
+      columnName: 'requestedby',
       displayColumns: [
         {
           columnName: 'name',
-          friendlyName: 'requested by',
+          friendlyName: 'Requested By',
           listStyle: 'nowrap',
           hiddenCreate: true,
         },
@@ -68,11 +73,62 @@ export default class Invite extends Table {
       }),
       authRequired: false,
     });
+
+    this.addMenuItem({
+      label: 'Invites',
+      parent: 'Admin',
+      icon: 'MailOpen',
+      navigate: '/core/invite',
+      order: 100,
+      roles: ['admin'],
+    });
+
+    this.initAdd(async () => {
+      this.packages.core.event.on(
+        'core.invite.recordCreate.after',
+        async ({data, req}) => {
+          await this.inviteFromUI({recordId: data.id, email: data.email, req});
+        },
+      );
+    });
+  }
+
+  async recordCreate({data, req}) {
+    const user = await this.packages.core.user.recordGet({
+      where: {email:data.email},
+      req,
+    });
+
+    if (user) {
+      throw new Error('User with this email already exists');
+    }
+
+    return super.recordCreate({data, req});
+  }
+
+  async inviteFromUI({recordId, req, email}) {
+    const {baseURL} = this.config.general;
+    const {expiryInHours} = this.config.signUp;
+
+    const token = crypto.randomUUID();
+    const expiry = new Date().getTime() + expiryInHours * 60 * 60 * 1000;
+
+    await this.recordUpdate({
+      recordId,
+      data: {
+        email,
+        token,
+        expires: expiry,
+        used: false,
+      },
+      req,
+    });
+    await this.sendEmail({token, email});
+    return {message: 'A sign up invite has been sent.'};
   }
 
   async signUpInviteCreate({email, fromUser, req}) {
-    const {baseURL} = this.config.general;
-    const {enabled, expiryInHours, allowedDomains} = this.config.signUp;
+    const {enabled, allowedDomains} = this.config.signUp;
 
     if (!enabled) {
       throw new Error('Sign up is disabled');
@@ -114,28 +170,35 @@ export default class Invite extends Table {
         throw new Error('Invite not created');
       }
 
-      const emailBodyTemplate = await this.packages.core.email.compileTemplate(
-        path.join(__dirname, 'invite', 'signUpLinkEmailBody.hbs'),
-      );
-
-      const emailContent = {
-        body: emailBodyTemplate({
-          signUpLink: `${baseURL ?? 'https://localhost:5173'}/set-password?token=${token}`,
-          expiryInHours,
-        }),
-        subject: 'New account creation',
-        to: email,
-      };
-
-      await this.packages.core.email.sendEmail({
-        email: emailContent,
-        provider: this.config.email.defaultMailbox,
-      });
+      await this.sendEmail({token, email});
 
       return {message: 'A sign up invite has been sent.'};
     } catch (error) {
       throw new Error(error);
     }
+  }
+
+  async sendEmail({token, email}) {
+    const {baseURL} = this.config.general;
+    const {expiryInHours} = this.config.signUp;
+
+    const emailBodyTemplate = await this.packages.core.email.compileTemplate(
+      path.join(__dirname, 'invite', 'signUpLinkEmailBody.hbs'),
+    );
+
+    const emailContent = {
+      body: emailBodyTemplate({
+        signUpLink: `${baseURL ?? 'https://localhost:5173'}/set-password?token=${token}`,
+        expiryInHours,
+      }),
+      subject: 'New account creation',
+      to: email,
+    };
+
+    await this.packages.core.email.sendEmail({
+      email: emailContent,
+      provider: this.config.email.defaultMailbox,
+    });
   }
 
   async _emailExists(email) {
