@@ -150,7 +150,7 @@ export default class Base {
   }
 
   methodAuthRequired({req, id}) {
-    if (this.methods[id].authRequired === false) {
+    if (this.methods[id]?.authRequired === false) {
       return false;
     }
 

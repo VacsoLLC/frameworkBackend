@@ -334,6 +334,7 @@ export default class Table extends Base {
         },
         tabName: parent.tabName,
         tabOrder: parent.tabOrder,
+        tabHide: parent.tabHide,
       });
     }
   }
@@ -411,6 +412,7 @@ export default class Table extends Base {
     displayColumns = [],
     tabName = this.table,
     tabOrder = 1000,
+    tabHide = false, // Hide this tab
     defaultValue,
     hiddenCreate,
     queryModifier, // Can be used to modify the query for references before it is run. Useful for filtering in fancy ways.
@@ -458,6 +460,7 @@ export default class Table extends Base {
       column: columnName,
       tabOrder,
       tabName,
+      tabHide,
     });
   }
 
@@ -766,7 +769,9 @@ export default class Table extends Base {
   async childrenGet({req}) {
     const children = [];
     for (const child of this.children) {
-      if (
+      if (child.tabHide) {
+        continue;
+      } else if (
         await this.packages[child.db][child.table].authorized({
           req,
           action: 'rowsGet',
