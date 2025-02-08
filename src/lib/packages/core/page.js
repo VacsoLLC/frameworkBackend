@@ -26,8 +26,7 @@ export default class Page extends Table {
           friendlyName: 'Parent',
         },
       ],
-      tabName: 'Child pages',
-      tabOrder: 1,
+      tabHide: true,
     });
 
     this.columnAdd({
@@ -65,13 +64,60 @@ export default class Page extends Table {
       view: 'pages',
       roles: ['admin'],
     });
+
+    this.methodAdd({
+      id: 'pagesGet',
+      method: this.pagesGet,
+      validator: z.object({
+        parentId: z.number().nullable(),
+      }),
+    });
+  }
+
+  async rowsGet({}) {
+    throw new Error('Must use pagesGet method when reading pages.');
+  }
+
+  async pagesGet({req, parentId}) {
+    // Make sure we are authorized to view the parent page
+    if (!this.authorized({req, id: parentId})) {
+      return [];
+    }
+
+    // return a list of pages, and the number of children that page has.
+    const query = this.knex('core.page')
+      .select(
+        'core.page.id',
+        'core.page.title',
+        this.knex.raw('count(child.id) as children'), // determine if the page has children
+        this.knex.raw('count(core.pagepermision.id) as permissions'), // Optimization, if the page has no permissions, we can skip checking them
+      )
+      .leftJoin('core.page as child', 'child.parent', 'core.page.id')
+      .leftJoin('core.pagepermision', 'core.page.id', 'core.pagepermision.page')
+      .where('core.page.parent', parentId)
+      .groupBy('core.page.id');
+
+    const result = await query;
+
+    const returnValue = [];
+    // If the child page has permissions, check them. If not, return the page.
+    for (const page of result) {
+      if (
+        page.permissions == 0 ||
+        (await this.authorized({req, id: page.id}))
+      ) {
+        returnValue.push(page);
+      }
+    }
+
+    return returnValue;
   }
 
   // This is a method that is called when a user tries to access a page
   // we are overriding the base method
-  async authorized({req}) {
-    if (req.params.recordId) {
-      const page = req.params.recordId;
+  async authorized({req, id}) {
+    if (id || req.params.recordId) {
+      const page = id || req.params.recordId;
       const user = req.user.id;
 
       if (this.hasCache(user, page)) {
