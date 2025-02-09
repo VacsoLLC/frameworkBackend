@@ -267,6 +267,7 @@ export default class Table extends Base {
       defaultValue: null,
       readOnly: true,
       hiddenOnEmpty: true,
+      hiddenList: true,
       ...(this.options.deleted_at ?? {}),
     });
 
