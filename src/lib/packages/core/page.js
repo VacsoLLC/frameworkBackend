@@ -72,10 +72,20 @@ export default class Page extends Table {
         parentId: z.number().nullable(),
       }),
     });
+
+    this.onUpdateAdd((that, data, req) => {
+      console.log(that, data, req);
+      if (data.body.data.id == data.body.data.parent) {
+        throw new Error('Page cannot be its own parent');
+      }
+    });
   }
 
-  async rowsGet({}) {
-    throw new Error('Must use pagesGet method when reading pages.');
+  async rowsGet(args) {
+    // don't return bodies, as the user may not have permissions
+    const newArgs = args;
+    newArgs.columns = ['id', 'title', 'parent'];
+    return await super.rowsGet(newArgs);
   }
 
   async pagesGet({req, parentId}) {
@@ -95,6 +105,7 @@ export default class Page extends Table {
       .leftJoin('core.page as child', 'child.parent', 'core.page.id')
       .leftJoin('core.pagepermision', 'core.page.id', 'core.pagepermision.page')
       .where('core.page.parent', parentId)
+      .where('core.page.deleted_at', null)
       .groupBy('core.page.id');
 
     const result = await query;
