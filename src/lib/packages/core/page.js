@@ -108,6 +108,7 @@ export default class Page extends Table {
         );
       })
       .where('core.page.parent', parentId)
+      .whereNull('core.page.deleted_at')
 
       .groupBy('core.page.id');
 
