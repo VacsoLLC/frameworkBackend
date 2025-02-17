@@ -5,10 +5,7 @@ export default class Page extends Table {
   constructor(args) {
     super({name: 'Page', className: 'page', viewRecord: 'page', ...args});
 
-    this.permissionCache = {
-      page: {},
-      userPage: {},
-    };
+    this.clearCache(); // init the cache
 
     this.columnAdd({
       columnName: 'title',
@@ -73,11 +70,11 @@ export default class Page extends Table {
       }),
     });
 
-    this.onUpdateAdd((that, data, req) => {
-      console.log(that, data, req);
-      if (data.body.data.id == data.body.data.parent) {
+    this.onUpdateAdd((data, req) => {
+      if (data.id == data.parent) {
         throw new Error('Page cannot be its own parent');
       }
+      return data;
     });
   }
 
@@ -102,10 +99,16 @@ export default class Page extends Table {
         this.knex.raw('count(child.id) as children'), // determine if the page has children
         this.knex.raw('count(core.pagepermision.id) as permissions'), // Optimization, if the page has no permissions, we can skip checking them
       )
-      .leftJoin('core.page as child', 'child.parent', 'core.page.id')
-      .leftJoin('core.pagepermision', 'core.page.id', 'core.pagepermision.page')
+      .leftJoin('core.page as child', function () {
+        this.on('child.parent', 'core.page.id').andOnNull('child.deleted_at');
+      })
+      .leftJoin('core.pagepermision', function () {
+        this.on('core.page.id', 'core.pagepermision.page').andOnNull(
+          'core.pagepermision.deleted_at',
+        );
+      })
       .where('core.page.parent', parentId)
-      .where('core.page.deleted_at', null)
+
       .groupBy('core.page.id');
 
     const result = await query;
@@ -152,6 +155,7 @@ WITH RECURSIVE page_hierarchy AS (
         ph.level + 1
     FROM core.page w
     INNER JOIN page_hierarchy ph ON w.id = ph.parent
+    WHERE w.deleted_at IS NULL
 ),
 hierarchy_with_perms AS (
     SELECT 
@@ -162,7 +166,9 @@ hierarchy_with_perms AS (
     FROM page_hierarchy ph
     left outer join core.pagepermision pp on 
         pp.page=ph.id
+    WHERE pp.deleted_at IS NULL
     group by ph.id, parent, level    
+    
     ORDER BY level asc
 )
 SELECT pp.* 
@@ -235,5 +241,12 @@ JOIN (
       this.permissionCache.userPage[user] = {};
     }
     this.permissionCache.userPage[user][page] = value;
+  }
+
+  clearCache() {
+    this.permissionCache = {
+      page: {},
+      userPage: {},
+    };
   }
 }

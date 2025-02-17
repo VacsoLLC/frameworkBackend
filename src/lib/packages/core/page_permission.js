@@ -59,5 +59,10 @@ export default class PagePermission extends Table {
       ],
       tabName: 'Page Permissions',
     });
+
+    this.onCreateOrUpdateAdd((data, req) => {
+      this.packages.core.page.clearCache();
+      return data;
+    });
   }
 }
